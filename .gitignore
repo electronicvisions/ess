@@ -1,0 +1,11 @@
+*.o
+*~
+*.a
+
+# WAF
+.lock-waf*
+.waf*
+
+include/
+lib/
+build/

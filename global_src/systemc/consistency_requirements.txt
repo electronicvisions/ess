@@ -1,0 +1,21 @@
+// Todos:
+
+* Make TagIDs consistent! -> esp. compress all l1cb-related tags into one master and distribute subsequently
+* What's it with AdrStatus -> would possibly nice to have address info in read back data
+
+// Definitions that need to be consistent in files hicann_pkg.sv, hicann_base.svh, sim_def.h:
+
+enum switch_loc
+ci_packet(_type)
+ 
+	// control interface data packets 
+	parameter ci_seqw=8,
+						ci_tagw=4,
+						ci_typew=4,
+						ci_addressw=16,
+						ci_dataw=32;
+						
+	parameter ci_width=64; // standard ci packet size
+
+	typedef enum logic [3:0]  //ci_typew
+		{ci_empty,ci_write,ci_read,ci_response,ci_response_error,ci_interrupt} citype_t;

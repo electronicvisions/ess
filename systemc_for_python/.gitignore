@@ -1,0 +1,9 @@
+# AutoTools
+Makefile
+/config*
+*.m4
+*.a
+*.o
+*.in
+.deps
+autom4te.cache

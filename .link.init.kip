@@ -1,0 +1,2 @@
+%l /cad/libs/u18/u18_1.2 resources/u18
+%l %%tdir%%/xml_styles env/xml

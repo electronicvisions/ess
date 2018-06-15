@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+import sys, os
+
+from waflib.Tools.ccroot import stlink_task
+from waflib.TaskGen import feature
+
+class run_make(stlink_task):
+    def run(self):
+        ret = self.exec_command(
+                '%s; %s; %s --add-missing' % (self.env.get_flat('ACLOCAL'),
+                                              self.env.get_flat('AUTOCONF'),
+                                              self.env.get_flat('AUTOMAKE')),
+                cwd = self.cwd, stdout=sys.stdout)
+        if ret != 0:
+            return ret
+        ret = self.exec_command('./configure', cwd = self.cwd, stdout=sys.stdout)
+        if ret != 0:
+            return ret
+        ret = self.exec_command('make install -i', cwd=self.cwd, stdout=sys.stdout)
+        self.exec_command('cp src/libsystemc.a %s' % self.outputs[0].abspath(), cwd=self.cwd)
+        print "COPY"
+        return ret
+
+@feature("autotools_make")
+def autotools_make(self):
+    self.link_task = self.create_task('run_make',
+            self.path.get_src().ant_glob('src/**/*.(cpp|h)'),
+            [ self.path.get_bld().find_or_declare('libsystemc.a') ])
+    self.link_task.cwd = self.path.get_src().abspath()
+    self.target = 'systemc'
+
+
+def options(opt):
+    opt.load('compiler_cxx')
+    opt.load('gtest')
+
+def configure(cfg):
+    cfg.load('compiler_cxx')
+    cfg.load('gtest')
+
+    cfg.find_program('aclocal',  mandatory=True)
+    cfg.find_program('autoconf', mandatory=True)
+    cfg.find_program('automake', mandatory=True)
+
+def spring_cleaning(bld):
+    cwd = bld.path.get_src().abspath()
+    bld.exec_command('make clean', cwd=cwd)
+    bld.exec_command('make uninstall', cwd=cwd)
+    bld.exec_command('find . -name "*.a" -exec rm -f {} \;', cwd=cwd)
+    bld.exec_command('rm -rf aclocal.m4 Makefile Makefile.in configure *.log', cwd=cwd)
+
+def build(bld):
+    bld(name='systemc',
+        features='autotools_make')
+
+    bld(
+        target       = 'systemc_test',
+        features     = 'gtest cxx cxxprogram',
+        source       =  [],
+        use          =  ['systemc'],
+        install_path = os.path.join('bin', 'tests'),
+    )
+
+    if bld.cmd == 'clean':
+        spring_cleaning(bld)

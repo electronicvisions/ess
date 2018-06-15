@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet type="text/xsl" href="./env/xml/xsl/icpro_project.xsl"?>
+<project name="p_facets">
+  <subproject name="s_systemsim">
+    <icpro version="1.0"/>
+    <tools>
+      <tool name="artist" version="5.1.41"/>
+      <tool name="ius" version="5.7"/>
+    </tools>
+    <designkit file="u18_1.2.xml" name="u18" path="resources/u18" vendor="UMC (United Microelectronic Corporation)" version="1.2">
+      <process_option description="6lm (6 metal layers)" name="6lm"/>
+    </designkit>
+  </subproject>
+</project>

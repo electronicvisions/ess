@@ -1,0 +1,7 @@
+[gerrit]
+host=brainscales-r.kip.uni-heidelberg.de
+port=29418
+project=ess
+defaultbranch=halbe_ess
+defaultremote=review
+defaultrebase=0

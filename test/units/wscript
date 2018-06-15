@@ -1,0 +1,143 @@
+#!/usr/bin/python
+import os
+SYSTEMC_FOR_PYTHON = os.path.join(os.environ['SYMAP2IC_PATH'],'components','systemsim','systemc_for_python')
+SYSTEMSIM_UNITS = os.path.join(os.environ['SYMAP2IC_PATH'],'components','systemsim','units')
+SYSTEMSIM_GLOBAL_SRC = os.path.join(os.environ['SYMAP2IC_PATH'],'components','systemsim','global_src', 'systemc')
+LOGGER = os.path.join(os.environ['SYMAP2IC_PATH'],'src','logging')
+THIS_DIRECTORY = os.path.join(os.environ['SYMAP2IC_PATH'],'components','systemsim','test', 'units')
+
+def options(opt):
+    opt.load('compiler_cxx')
+    opt.load('compiler_c')
+    opt.recurse( LOGGER )
+
+def configure(cfg):
+    cfg.load('compiler_cxx')
+    cfg.load('compiler_c')
+    cfg.check_cxx(
+            lib='systemc',
+            libpath= SYSTEMC_FOR_PYTHON,
+            includes= SYSTEMC_FOR_PYTHON + '/src',
+            uselib_store = 'SYSTEMC',
+            mandatory=True
+    )
+    cfg.recurse( LOGGER )
+    cfg.env.SRC_MERGERTB = """
+        {0}/merger.cpp\
+        {0}/merger_timed.cpp\
+        tb_merger_tree.cpp\
+        """.format('../../units').split()
+    print cfg.env.SRC_MERGERTB
+    cfg.env.SRC_PETB = """
+        {0}/priority_encoder.cpp\
+        {0}/lost_event_logger.cpp\
+        tb_priority_encoder.cpp
+        """.format('../../units').split()
+    cfg.env.SRC_BGTB = """
+        {0}/bg_event_generator.cpp\
+        tb_bg_event_generator.cpp
+        """.format('../../units').split()
+    cfg.env.SRC_HWNEURONTB = """
+        {0}/hw_neuron.cpp\
+        {0}/ADEX.cpp\
+        {0}/hw_neuron_ADEX.cpp\
+        {0}/IFSC.cpp\
+        {0}/hw_neuron_IFSC.cpp\
+        tb_hw_neuron.cpp\
+        """.format('../../units').split()
+    cfg.env.SRC_HWNEURONTEST = """
+        {0}/hw_neuron.cpp\
+        {0}/ADEX.cpp\
+        {0}/hw_neuron_ADEX.cpp\
+        test_hw_neuron.cpp\
+        """.format('../../units').split()
+
+
+def build(bld):
+    #bld.recurse( SYSTEMC_FOR_PYTHON )
+    bld.recurse( LOGGER )
+    bld(
+      features = 'cxx',
+      source  = bld.env.SRC_MERGERTB,
+      includes = [SYSTEMC_FOR_PYTHON + '/src',LOGGER, SYSTEMSIM_UNITS, SYSTEMSIM_GLOBAL_SRC],
+      target ='tb_merger_objs',
+      #cxxflags = ['-Wall', '-Wextra'],
+      install_path='.',
+    )
+    bld(
+      features = 'cxx cxxprogram',
+      source  = 'main_merger_tree.cpp',
+      use = ['tb_merger_objs', 'logger_obj', 'SYSTEMC'],
+      #cxxflags = ['-Wall', '-Wextra'],
+      target ='tb_merger',
+      install_path='.',
+    )
+
+    # priority encoder
+    bld(
+      features = 'cxx',
+      source  = bld.env.SRC_PETB,
+      includes = [SYSTEMC_FOR_PYTHON + '/src',LOGGER, SYSTEMSIM_UNITS, SYSTEMSIM_GLOBAL_SRC],
+      target ='tb_pe_objs',
+      install_path='.',
+    )
+    bld(
+      features = 'cxx cxxprogram',
+      source  = 'main_pe.cpp',
+      includes = [SYSTEMC_FOR_PYTHON + '/src',LOGGER, SYSTEMSIM_UNITS],
+      use = ['tb_pe_objs', 'logger_obj', 'SYSTEMC'],
+      target ='tb_pe',
+      install_path='.',
+    )
+
+    # background event generator
+    bld(
+      features = 'cxx',
+      source  = bld.env.SRC_BGTB,
+      includes = [SYSTEMC_FOR_PYTHON + '/src',LOGGER, SYSTEMSIM_UNITS, SYSTEMSIM_GLOBAL_SRC],
+      target ='tb_bg_objs',
+      install_path='.',
+    )
+    bld(
+      features = 'cxx cxxprogram',
+      source  = 'main_bg_ev_gen.cpp',
+      includes = [SYSTEMC_FOR_PYTHON + '/src',LOGGER, SYSTEMSIM_UNITS],
+      use = ['tb_bg_objs', 'logger_obj', 'SYSTEMC'],
+      target ='tb_bg',
+      install_path='.',
+    )
+
+
+    # hw neuron
+    bld(
+      features = 'cxx',
+      source  = bld.env.SRC_HWNEURONTB,
+      includes = [SYSTEMC_FOR_PYTHON + '/src', LOGGER, SYSTEMSIM_UNITS,SYSTEMSIM_GLOBAL_SRC],
+      target ='tb_hw_neuron_objs',
+      install_path='.',
+    )
+    bld(
+      features = 'cxx cxxprogram',
+      source  = 'main_tb_hw_neuron.cpp',
+      includes = [SYSTEMC_FOR_PYTHON + '/src', LOGGER, SYSTEMSIM_UNITS,SYSTEMSIM_GLOBAL_SRC],
+      use = ['tb_hw_neuron_objs', 'logger_obj', 'SYSTEMC'],
+      target ='tb_hw_neuron',
+      install_path='.',
+    )
+
+    # hw neuron test
+    bld(
+      features = 'cxx',
+      source  = bld.env.SRC_HWNEURONTEST,
+      includes = [SYSTEMC_FOR_PYTHON + '/src', LOGGER, SYSTEMSIM_UNITS,SYSTEMSIM_GLOBAL_SRC],
+      target ='test_hw_neuron_objs',
+      install_path='.',
+    )
+    bld(
+      features = 'cxx cxxprogram',
+      source  = 'main_test_hw_neuron.cpp',
+      includes = [SYSTEMC_FOR_PYTHON + '/src', LOGGER, SYSTEMSIM_UNITS,SYSTEMSIM_GLOBAL_SRC],
+      use = ['test_hw_neuron_objs', 'logger_obj', 'SYSTEMC'],
+      target ='test_hw_neuron',
+      install_path='.',
+    )

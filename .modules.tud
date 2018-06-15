@@ -1,0 +1,2 @@
+setenv ICPRO_DFII_MODULE cds_ic/5.1.41_USR3
+setenv ICPRO_IUS_MODULE cds_ldv/8.10.6
