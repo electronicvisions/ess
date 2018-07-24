@@ -53,13 +53,5 @@ def build(bld):
     bld(name='systemc',
         features='autotools_make')
 
-    bld(
-        target       = 'systemc_test',
-        features     = 'gtest cxx cxxprogram',
-        source       =  [],
-        use          =  ['systemc'],
-        install_path = os.path.join('bin', 'tests'),
-    )
-
     if bld.cmd == 'clean':
         spring_cleaning(bld)
