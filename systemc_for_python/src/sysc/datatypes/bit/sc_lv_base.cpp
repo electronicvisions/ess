@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -35,8 +37,11 @@
 
 
 // $Log: sc_lv_base.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.2  2011/08/24 22:05:40  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:53:53  acg
 // Andy Goodrich: added $Log command so that CVS comments are reproduced in
@@ -46,9 +51,23 @@
 #include "sysc/datatypes/bit/sc_bit_ids.h"
 #include "sysc/datatypes/bit/sc_lv_base.h"
 
+#include <sstream>
 
-namespace sc_dt
+namespace sc_dt {
+
+// explicit template instantiations
+template class SC_API sc_proxy<sc_lv_base>;
+template class SC_API sc_proxy<sc_bv_base>;
+
+SC_API void sc_proxy_out_of_bounds(const char* msg, int64 val)
 {
+    std::stringstream ss;
+    if( msg != NULL )
+        ss << msg;
+    if( val != 0 )
+        ss << val;
+    SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, ss.str().c_str() );
+}
 
 // ----------------------------------------------------------------------------
 //  CLASS : sc_lv_base
@@ -68,7 +87,8 @@ sc_lv_base::init( int length_, const sc_logic& init_value )
 {
     // check the length
     if( length_ <= 0 ) {
-	SC_REPORT_ERROR( sc_core::SC_ID_ZERO_LENGTH_, 0 );
+        SC_REPORT_ERROR( sc_core::SC_ID_ZERO_LENGTH_, 0 );
+        sc_core::sc_abort(); // can't recover from here
     }
     // allocate memory for the data and control words
     m_len = length_;
@@ -126,7 +146,8 @@ sc_lv_base::sc_lv_base( const char* a, int length_ )
 }
 
 sc_lv_base::sc_lv_base( const sc_lv_base& a )
-    : m_len( a.m_len ),
+    : sc_proxy<sc_lv_base>(),
+      m_len( a.m_len ),
       m_size( a.m_size ),
       m_data( new sc_digit[m_size * 2] ),
       m_ctrl( m_data + m_size )

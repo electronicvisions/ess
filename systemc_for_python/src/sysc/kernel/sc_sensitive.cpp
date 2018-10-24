@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -22,49 +24,9 @@
   Original Author: Stan Y. Liao, Synopsys, Inc.
                    Martin Janssen, Synopsys, Inc.
 
+  CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
 
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date: Bishnupriya Bhattacharya, Cadence Design Systems,
-                               25 August, 2003
-  Description of Modification: add make_static_sensitivity() routines to support
-                               dynamic method process creation with static
-                               sensitivity
-
- *****************************************************************************/
-
-
-// $Log: sc_sensitive.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:37  acg
-// SystemC 2.2
-//
-// Revision 1.8  2006/04/11 23:13:21  acg
-//   Andy Goodrich: Changes for reduced reset support that only includes
-//   sc_cthread, but has preliminary hooks for expanding to method and thread
-//   processes also.
-//
-// Revision 1.7  2006/01/27 17:31:24  acg
-//  Andy Goodrich: removed debugging comments from << operator code for types
-//  that are deprecated.
-//
-// Revision 1.6  2006/01/26 21:04:54  acg
-//  Andy Goodrich: deprecation message changes and additional messages.
-//
-// Revision 1.5  2006/01/25 00:31:19  acg
-//  Andy Goodrich: Changed over to use a standard message id of
-//  SC_ID_IEEE_1666_DEPRECATION for all deprecation messages.
-//
-// Revision 1.4  2006/01/24 20:49:05  acg
-// Andy Goodrich: changes to remove the use of deprecated features within the
-// simulator, and to issue warning messages when deprecated features are used.
-//
-// Revision 1.3  2006/01/13 18:44:30  acg
-// Added $Log to record CVS changes into the source.
-//
 
 #include "sysc/kernel/sc_event.h"
 #include "sysc/kernel/sc_kernel_ids.h"
@@ -85,17 +47,17 @@ static
 sc_method_handle
 as_method_handle( sc_process_b* handle_ )
 {
-    return DCAST<sc_method_handle>( handle_ );
+    return dynamic_cast<sc_method_handle>( handle_ );
 }
 
 static
 sc_thread_handle
 as_thread_handle( sc_process_b* handle_ )
 {
-    return DCAST<sc_thread_handle>( handle_ );
+    return dynamic_cast<sc_thread_handle>( handle_ );
 }
 
-static 
+static
 void
 warn_no_parens()
 {
@@ -144,7 +106,7 @@ sc_sensitive::operator << ( sc_process_handle handle_ )
 	m_mode = SC_METHOD_;
 	break;
       default:
-	assert(0);
+	sc_assert(0);
     }
     m_handle = (sc_process_b*)handle_;
     return *this;
@@ -247,7 +209,7 @@ sc_sensitive::make_static_sensitivity(
 	return;
     }
     sc_thread_handle handle_t = as_thread_handle( handle_ );
-    // assert(handle_t);
+    // sc_assert(handle_t);
     port_.make_sensitive( handle_t );
 }
 
@@ -279,7 +241,7 @@ sc_sensitive::operator << ( sc_event_finder& event_finder_ )
     return *this;
 }
 
-void 
+void
 sc_sensitive::make_static_sensitivity(
     sc_process_b* handle_, sc_event_finder& event_finder_)
 {
@@ -292,7 +254,7 @@ sc_sensitive::make_static_sensitivity(
 	    return;
         }
 	sc_thread_handle handle_t = as_thread_handle( handle_ );
-	// assert(handle_t);
+	// sc_assert(handle_t);
 	event_finder_.port().make_sensitive( handle_t, &event_finder_);
     }
 }
@@ -436,7 +398,7 @@ sc_sensitive_pos::operator << ( sc_process_handle handle_ )
 	m_mode = SC_METHOD_;
 	break;
       default:
-	assert(0);
+	sc_assert(0);
     }
     m_handle = (sc_process_b*)handle_;
     return *this;
@@ -711,7 +673,7 @@ sc_sensitive_neg::operator << ( sc_process_handle handle_ )
 	m_mode = SC_METHOD_;
 	break;
       default:
-	assert(0);
+	sc_assert(0);
     }
     m_handle = (sc_process_b*)handle_;
     return *this;
@@ -939,5 +901,59 @@ void sc_sensitive_neg::reset()
 }
 
 } // namespace sc_core
+
+/*****************************************************************************
+
+  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
+  changes you are making here.
+
+      Name, Affiliation, Date: Bishnupriya Bhattacharya, Cadence Design Systems,
+                               25 August, 2003
+  Description of Modification: add make_static_sensitivity() routines to support
+                               dynamic method process creation with static
+                               sensitivity
+
+ *****************************************************************************/
+
+// $Log: sc_sensitive.cpp,v $
+// Revision 1.5  2011/08/26 20:46:10  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.4  2011/02/18 20:27:14  acg
+//  Andy Goodrich: Updated Copyrights.
+//
+// Revision 1.3  2011/02/13 21:47:38  acg
+//  Andy Goodrich: update copyright notice.
+//
+// Revision 1.2  2008/05/22 17:06:26  acg
+//  Andy Goodrich: updated copyright notice to include 2008.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
+//
+// Revision 1.8  2006/04/11 23:13:21  acg
+//   Andy Goodrich: Changes for reduced reset support that only includes
+//   sc_cthread, but has preliminary hooks for expanding to method and thread
+//   processes also.
+//
+// Revision 1.7  2006/01/27 17:31:24  acg
+//  Andy Goodrich: removed debugging comments from << operator code for types
+//  that are deprecated.
+//
+// Revision 1.6  2006/01/26 21:04:54  acg
+//  Andy Goodrich: deprecation message changes and additional messages.
+//
+// Revision 1.5  2006/01/25 00:31:19  acg
+//  Andy Goodrich: Changed over to use a standard message id of
+//  SC_ID_IEEE_1666_DEPRECATION for all deprecation messages.
+//
+// Revision 1.4  2006/01/24 20:49:05  acg
+// Andy Goodrich: changes to remove the use of deprecated features within the
+// simulator, and to issue warning messages when deprecated features are used.
+//
+// Revision 1.3  2006/01/13 18:44:30  acg
+// Added $Log to record CVS changes into the source.
+//
 
 // Taf!

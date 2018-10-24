@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -45,7 +47,7 @@ void exec::entry(){
   int				add1_tmp = 0;
   signed int		        dina_tmp = 0;
   signed int		        dinb_tmp = 0;
-  signed int		        dout_tmp = 0;
+  sc_dt::int64		        dout_tmp = 0;
   unsigned int		        dest_tmp = 0;
 
   //
@@ -66,7 +68,7 @@ void exec::entry(){
     		// output MUX
     		switch (opcode_tmp) {
         		case 0:         // Stall 
-                	dout_tmp = dout_tmp;
+                	// dout_tmp = dout_tmp;  // keeps its value
                 	wait();
                 	break;
 		case 1: 	// add with carry
@@ -87,7 +89,7 @@ void exec::entry(){
                 	break;
         	case 5:         // multiply assume 2 clock cycle multiplication
                 	dout_tmp = dina_tmp * dinb_tmp;
-                	//wait();	so that BC have something to do
+                	wait();	// so that BC has something to do
                 	wait();
                 	break;
         	case 6:         // divide assume 2 clock cycle multiplication
@@ -96,7 +98,7 @@ void exec::entry(){
 			} else {
                 		dout_tmp = dina_tmp / dinb_tmp;
 			}
-                	// wait();	so that BC have something to do
+                	wait();	 // so that BC has something to do
                 	wait();
                 	break;
         	case 7:         // bitwise NAND
@@ -137,7 +139,7 @@ void exec::entry(){
     		}
     
 
-    		dout.write(dout_tmp);
+    		dout.write(static_cast<signed int>(dout_tmp));
     		out_valid.write(true);
 		destout.write(dest_tmp);
 
@@ -146,9 +148,16 @@ void exec::entry(){
 		} else {
 			Z.write(false);
 		}
-		if (dout_tmp > 2^32) {
+                sc_dt::int64 abs_dout = dout_tmp >= 0 ? dout_tmp : -dout_tmp;
+                const sc_dt::int64 carry_mask = sc_dt::int64(1) << 32;
+                if (abs_dout & carry_mask) {
+                       C.write(true);
+                } else {
+                       C.write(false);
+                }
+                if (abs_dout > carry_mask) {
 			V.write(true);
-		}else {
+		} else {
 			V.write(false);
 		}
 		printf("\t\t\t\t\t\t\t-------------------------------\n");

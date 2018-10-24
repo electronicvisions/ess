@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -38,8 +40,11 @@
 
 
 // $Log: sc_nbexterns.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.2  2011/02/18 20:19:15  acg
+//  Andy Goodrich: updating Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:49:32  acg
 // Added $Log command so that CVS check in comments are reproduced in the
@@ -589,8 +594,8 @@ and_on_help(small_type us,
             const sc_digit *vd)
 {
 
-  register sc_digit *x = ud;
-  register const sc_digit *y = vd;
+  sc_digit *x = ud;
+  const sc_digit *y = vd;
   int xnd = und;
   int ynd = vnd;
 
@@ -618,8 +623,8 @@ and_on_help(small_type us,
     }
     else {  // case 3
 
-      register sc_digit xcarry = 1;
-      register sc_digit ycarry = 1;
+      sc_digit xcarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);
@@ -643,7 +648,7 @@ and_on_help(small_type us,
 
     if (us > 0) { // case 4
 
-      register sc_digit ycarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         ycarry += (~(*y++) & DIGIT_MASK);
@@ -660,7 +665,7 @@ and_on_help(small_type us,
     }
     else {  // case 5
 
-      register sc_digit xcarry = 1;
+      sc_digit xcarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);
@@ -690,8 +695,8 @@ or_on_help(small_type us,
            const sc_digit *vd)
 {
   
-  register sc_digit *x = ud;
-  register const sc_digit *y = vd;
+  sc_digit *x = ud;
+  const sc_digit *y = vd;
   int xnd = und;
   int ynd = vnd;
 
@@ -717,8 +722,8 @@ or_on_help(small_type us,
     }
     else {  // case 4
 
-      register sc_digit xcarry = 1;
-      register sc_digit ycarry = 1;
+      sc_digit xcarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);
@@ -742,7 +747,7 @@ or_on_help(small_type us,
 
     if (us > 0) { // case 5
 
-      register sc_digit ycarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         ycarry += (~(*y++) & DIGIT_MASK);
@@ -761,7 +766,7 @@ or_on_help(small_type us,
     }
     else {  // case 6
 
-      register sc_digit xcarry = 1;
+      sc_digit xcarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);
@@ -793,8 +798,8 @@ xor_on_help(small_type us,
             const sc_digit *vd)
 {
   
-  register sc_digit *x = ud;
-  register const sc_digit *y = vd;
+  sc_digit *x = ud;
+  const sc_digit *y = vd;
   int xnd = und;
   int ynd = vnd;
 
@@ -823,8 +828,8 @@ xor_on_help(small_type us,
     }
     else {  // case 4
 
-      register sc_digit xcarry = 1;
-      register sc_digit ycarry = 1;
+      sc_digit xcarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);
@@ -847,7 +852,7 @@ xor_on_help(small_type us,
 
     if (us > 0) { // case 5
 
-      register sc_digit ycarry = 1;
+      sc_digit ycarry = 1;
 
       while (y < yend) {
         ycarry += (~(*y++) & DIGIT_MASK);
@@ -866,7 +871,7 @@ xor_on_help(small_type us,
     }
     else {  // case 6
 
-      register sc_digit xcarry = 1;
+      sc_digit xcarry = 1;
 
       while (y < yend) {
         xcarry += (~(*x) & DIGIT_MASK);

@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,41 +23,8 @@
 
   Original Author: Gene Bushuyev, Synopsys, Inc.
 
+ CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-
-// $Log: sc_bit_proxies.h,v $
-// Revision 1.4  2007/03/14 17:47:49  acg
-//  Andy Goodrich: Formatting.
-//
-// Revision 1.3  2007/01/18 19:29:18  acg
-//  Andy Goodrich: fixed bug in concatenations of bit selects on sc_lv and
-//  sc_bv types. The offending code was in sc_bitref<X>::set_word and
-//  sc_bitref<X>::get_word. These methods were not writing the bit they
-//  represented, but rather writing an entire word whose index was the
-//  index of the bit they represented. This not only did not write the
-//  correct bit, but clobbered a word that might not even be in the
-//  variable the reference was for.
-//
-// Revision 1.2  2007/01/17 22:45:08  acg
-//  Andy Goodrich: fixed sc_bitref<X>::set_bit().
-//
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:53  acg
-// Andy Goodrich: added $Log command so that CVS comments are reproduced in
-// the source.
-//
 
 #ifndef SC_BIT_PROXIES_H
 #define SC_BIT_PROXIES_H
@@ -64,11 +33,21 @@
 #include "sysc/datatypes/bit/sc_bit_ids.h"
 #include "sysc/datatypes/bit/sc_proxy.h"
 
+#ifdef _MSC_VER
+// disable false positive warning C4806:
+//   '&': unsafe operation: no value of type 'bool' promoted to type
+//   'const sc_dt::sc_digit' can equal the given constant
+// triggered by calling sc_subref<sc_bv_base>::get_cword
+// TODO: optimize get_cword for bit ranges to avoid check entirely
+#pragma warning(push)
+#pragma warning(disable:4806)
+#endif
 
 namespace sc_dt
 {
 
 // classes defined in this module
+template <class X, class Traits> class sc_bitref_conv_r;
 template <class X> class sc_bitref_r;
 template <class X> class sc_bitref;
 template <class X> class sc_subref_r;
@@ -76,6 +55,31 @@ template <class X> class sc_subref;
 template <class X, class Y> class sc_concref_r;
 template <class X, class Y> class sc_concref;
 
+// ----------------------------------------------------------------------------
+//  CLASS TEMPLATE : sc_bitref_conv_r<T>
+//
+//  Proxy class for sc_proxy bit selection (r-value only, boolean conversion).
+// ----------------------------------------------------------------------------
+template<class T, class Traits = typename T::traits_type>
+class sc_bitref_conv_r { /* empty by default */ };
+
+// specialization for bit-vector based sc_proxy classes
+template<typename T>
+class sc_bitref_conv_r<T, sc_proxy_traits<sc_bv_base> >
+{
+public:
+#if IEEE_1666_CPLUSPLUS >= 201103L // explicit operator needs C++11
+    // explicit conversion to bool
+    explicit operator bool() const {
+        return static_cast<const sc_bitref_r<T>&>(*this).to_bool();
+    }
+#endif
+
+    // explicit (negating) conversion to bool
+    bool operator!() const {
+        return ! static_cast<const sc_bitref_r<T>&>(*this).to_bool();
+    }
+};
 
 // ----------------------------------------------------------------------------
 //  CLASS TEMPLATE : sc_bitref_r<T>
@@ -85,16 +89,23 @@ template <class X, class Y> class sc_concref;
 
 template <class T>
 class sc_bitref_r
+  : public sc_bitref_conv_r<T>
 {
     friend class sc_bv_base;
     friend class sc_lv_base;
 
 public:
 
+    // typedefs
+
+    typedef typename T::traits_type          traits_type;
+    typedef typename traits_type::bit_type   bit_type;
+    typedef typename traits_type::value_type value_type;
+
     // constructor
 
     sc_bitref_r( const T& obj_, int index_ )
-	: m_obj( CCAST<T&>( obj_ ) ), m_index( index_ )
+	: m_obj( const_cast<T&>( obj_ ) ), m_index( index_ )
 	{}
 
 
@@ -103,7 +114,6 @@ public:
     sc_bitref_r( const sc_bitref_r<T>& a )
 	: m_obj( a.m_obj ), m_index( a.m_index )
 	{}
-
 
     // cloning
 
@@ -115,19 +125,19 @@ public:
 
     // bitwise complement
 
-    const sc_logic operator ~ () const
-	{ return sc_logic( sc_logic::not_table[value()] ); }
+    bit_type operator ~ () const
+        { return bit_type( sc_logic::not_table[value()] ); }
 
 
-    // implicit conversion to sc_logic
+    // implicit conversion to bit_type
 
-    operator const sc_logic() const
-	{ return sc_logic( m_obj.get_bit( m_index ) ); }
+    operator bit_type() const
+        { return bit_type( m_obj.get_bit( m_index ) ); }
 
 
     // explicit conversions
 
-    sc_logic_value_t value() const
+    value_type value() const
 	{ return m_obj.get_bit( m_index ); }
 
 
@@ -149,7 +159,7 @@ public:
     int size() const
 	{ return ( (length() - 1) / SC_DIGIT_SIZE + 1 ); }
 
-    sc_logic_value_t get_bit( int n ) const;
+    value_type get_bit( int n ) const;
 
     sc_digit get_word( int i ) const;
     sc_digit get_cword( int i ) const;
@@ -179,7 +189,7 @@ private:
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator & ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b );
 
 
@@ -187,7 +197,7 @@ operator & ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b );
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator | ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b );
 
 
@@ -195,7 +205,7 @@ operator | ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b );
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator ^ ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b );
 
 
@@ -476,6 +486,7 @@ class sc_bitref
     friend class sc_lv_base;
 
 public:
+    typedef typename sc_bitref_r<X>::value_type value_type;
 
     // constructor
 
@@ -580,7 +591,7 @@ public:
 
     // common methods
 
-    void set_bit( int n, sc_logic_value_t value );
+    void set_bit( int n, value_type value );
 
     void set_word( int i, sc_digit w );
     void set_cword( int i, sc_digit w );
@@ -662,11 +673,12 @@ class sc_subref_r
     void check_bounds();
 
 public:
+    typedef typename sc_proxy<sc_subref_r<X> >::value_type value_type;
 
     // constructor
 
     sc_subref_r( const X& obj_, int hi_, int lo_ )
-	: m_obj( CCAST<X&>( obj_ ) ), m_hi( hi_ ), m_lo( lo_ ), m_len( 0 )
+	: m_obj( const_cast<X&>( obj_ ) ), m_hi( hi_ ), m_lo( lo_ ), m_len( 0 )
 	{ check_bounds(); }
 
 
@@ -691,8 +703,8 @@ public:
     int size() const
 	{ return ( (length() - 1) / SC_DIGIT_SIZE + 1 ); }
 
-    sc_logic_value_t get_bit( int n ) const;
-    void set_bit( int n, sc_logic_value_t value );
+    value_type get_bit( int n ) const;
+    void set_bit( int n, value_type value );
 
     sc_digit get_word( int i )const;
     void set_word( int i, sc_digit w );
@@ -713,10 +725,10 @@ public:
 
 protected:
 
-    X& m_obj;
-    int        m_hi;
-    int        m_lo;
-    int        m_len;
+    X&  m_obj;
+    int m_hi;
+    int m_lo;
+    int m_len;
 
 private:
 
@@ -770,12 +782,12 @@ operator , ( const sc_logic&, sc_subref_r<T> );
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 operator , ( sc_subref_r<T>, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 operator , ( bool, sc_subref_r<T> );
 
 
@@ -821,12 +833,12 @@ concat( const sc_logic&, sc_subref_r<T> );
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 concat( sc_subref_r<T>, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 concat( bool, sc_subref_r<T> );
 
 
@@ -894,12 +906,12 @@ operator , ( const sc_logic&, sc_subref<T> );
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 operator , ( sc_subref<T>, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 operator , ( bool, sc_subref<T> );
 
 
@@ -965,12 +977,12 @@ concat( const sc_logic&, sc_subref<T> );
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 concat( sc_subref<T>, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 concat( bool, sc_subref<T> );
 
 #endif
@@ -1134,11 +1146,12 @@ class sc_concref_r
     : public sc_proxy<sc_concref_r<X,Y> >
 {
 public:
+    typedef typename sc_proxy<sc_concref_r<X,Y> >::value_type value_type;
 
     // constructor
 
     sc_concref_r( const X& left_, const Y& right_, int delete_ = 0 )
-	: m_left( CCAST<X&>( left_ ) ), m_right( CCAST<Y&>( right_ ) ),
+	: m_left( const_cast<X&>( left_ ) ), m_right( const_cast<Y&>( right_ ) ),
 	  m_delete( delete_ ), m_refs( *new int( 1 ) )
 	{}
 
@@ -1170,8 +1183,8 @@ public:
     int size() const
 	{ return ( (length() - 1) / SC_DIGIT_SIZE + 1 ); }
 
-    sc_logic_value_t get_bit( int n ) const;
-    void set_bit( int n, sc_logic_value_t value );
+    value_type get_bit( int n ) const;
+    void set_bit( int n, value_type value );
 
     sc_digit get_word( int i ) const;
     void set_word( int i, sc_digit w );
@@ -1190,10 +1203,10 @@ public:
 
 protected:
 
-    X&   m_left;
-    Y&   m_right;
+    X&           m_left;
+    Y&           m_right;
     mutable int  m_delete;
-    int& m_refs;
+    int&         m_refs;
 
 private:
 
@@ -1247,12 +1260,12 @@ operator , ( const sc_logic&, sc_concref_r<T1,T2> );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 operator , ( sc_concref_r<T1,T2>, bool );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 operator , ( bool, sc_concref_r<T1,T2> );
 
 
@@ -1298,12 +1311,12 @@ concat( const sc_logic&, sc_concref_r<T1,T2> );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 concat( sc_concref_r<T1,T2>, bool );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 concat( bool, sc_concref_r<T1,T2> );
 
 
@@ -1371,12 +1384,12 @@ operator , ( const sc_logic&, sc_concref<T1,T2> );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 operator , ( sc_concref<T1,T2>, bool );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 operator , ( bool, sc_concref<T1,T2> );
 
 
@@ -1442,12 +1455,12 @@ concat( const sc_logic&, sc_concref<T1,T2> );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 concat( sc_concref<T1,T2>, bool );
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 concat( bool, sc_concref<T1,T2> );
 
 #endif
@@ -1651,12 +1664,12 @@ operator , ( const sc_logic&, const sc_proxy<T>& );
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 operator , ( const sc_proxy<T>&, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 operator , ( bool, const sc_proxy<T>& );
 
 
@@ -1702,12 +1715,12 @@ concat( const sc_logic&, const sc_proxy<T>& );
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 concat( const sc_proxy<T>&, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 concat( bool, const sc_proxy<T>& );
 
 
@@ -1775,12 +1788,12 @@ operator , ( const sc_logic&, sc_proxy<T>& );
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 operator , ( sc_proxy<T>&, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 operator , ( bool, sc_proxy<T>& );
 
 
@@ -1846,12 +1859,12 @@ concat( const sc_logic&, sc_proxy<T>& );
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 concat( sc_proxy<T>&, bool );
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 concat( bool, sc_proxy<T>& );
 
 #endif
@@ -1915,7 +1928,7 @@ concat( sc_proxy<T1>&, sc_proxy<T2>& );
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator & ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 {
     return sc_logic( sc_logic::and_table[a.value()][b.value()] );
@@ -1926,7 +1939,7 @@ operator & ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator | ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 {
     return sc_logic( sc_logic::or_table[a.value()][b.value()] );
@@ -1937,7 +1950,7 @@ operator | ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 
 template <class T1, class T2>
 inline
-const sc_logic
+sc_logic
 operator ^ ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 {
     return sc_logic( sc_logic::xor_table[a.value()][b.value()] );
@@ -1967,14 +1980,13 @@ operator != ( const sc_bitref_r<T1>& a, const sc_bitref_r<T2>& b )
 
 template <class T>
 inline
-sc_logic_value_t
+typename sc_bitref_r<T>::value_type
 sc_bitref_r<T>::get_bit( int n ) const
 {
     if( n == 0 ) {
 	return m_obj.get_bit( m_index );
     } else {
 	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_ , 0 );
-        // never reached
 	return Log_0;
     }
 }
@@ -1989,7 +2001,6 @@ sc_bitref_r<T>::get_word( int n ) const
 	return ( get_bit( n ) & SC_DIGIT_ONE );
     } else {
 	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
-	// never reached
 	return 0;
     }
 }
@@ -2000,10 +2011,9 @@ sc_digit
 sc_bitref_r<T>::get_cword( int n ) const
 {
     if( n == 0 ) {
-	return ( get_bit( n ) & SC_DIGIT_TWO );
+	return ( (get_bit( n ) & SC_DIGIT_TWO) >> 1 );
     } else {
 	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
-	// never reached
 	return 0;
     }
 }
@@ -2355,7 +2365,7 @@ sc_bitref<X>::b_not()
 template <class X>
 inline
 void
-sc_bitref<X>::set_bit( int n, sc_logic_value_t value )
+sc_bitref<X>::set_bit( int n, value_type value )
 {
     if( n == 0 ) {
 	this->m_obj.set_bit( this->m_index, value );
@@ -2511,7 +2521,8 @@ sc_subref_r<X>::check_bounds()
 {
     int len = m_obj.length();
     if( m_hi < 0 || m_hi >= len || m_lo < 0 || m_lo >= len ) {
-	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
+        SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
+        sc_core::sc_abort(); // can't recover from here
     }
     if( reversed() ) {
 	m_len = m_lo - m_hi + 1;
@@ -2525,7 +2536,7 @@ sc_subref_r<X>::check_bounds()
 
 template <class X>
 inline
-sc_logic_value_t
+typename sc_subref_r<X>::value_type
 sc_subref_r<X>::get_bit( int n ) const
 {
     if( reversed() ) {
@@ -2538,7 +2549,7 @@ sc_subref_r<X>::get_bit( int n ) const
 template <class X>
 inline
 void
-sc_subref_r<X>::set_bit( int n, sc_logic_value_t value )
+sc_subref_r<X>::set_bit( int n, value_type value )
 {
     if( reversed() ) {
 	m_obj.set_bit( m_lo - n, value );
@@ -2585,15 +2596,17 @@ sc_subref_r<X>::set_word( int i, sc_digit w )
 	n1 = m_lo - i * SC_DIGIT_SIZE;
 	n2 = sc_max( n1 - SC_DIGIT_SIZE, m_hi - 1 );
 	for( int n = n1; n > n2; n -- ) {
-	    m_obj.set_bit( n, sc_logic_value_t( (w >> k ++) & SC_DIGIT_ONE |
-						m_obj[n].value() & SC_DIGIT_TWO ) );
+	    m_obj.set_bit( n, value_type(
+	                              ( (w >> k ++) & SC_DIGIT_ONE ) |
+				      ( m_obj[n].value() & SC_DIGIT_TWO ) ) );
 	}
     } else {
 	n1 = m_lo + i * SC_DIGIT_SIZE;
 	n2 = sc_min( n1 + SC_DIGIT_SIZE, m_hi + 1 );
 	for( int n = n1; n < n2; n ++ ) {
-	    m_obj.set_bit( n, sc_logic_value_t( (w >> k ++) & SC_DIGIT_ONE |
-						m_obj[n].value() & SC_DIGIT_TWO ) );
+	    m_obj.set_bit( n, value_type(
+	                                ( (w >> k ++) & SC_DIGIT_ONE ) |
+					( m_obj[n].value() & SC_DIGIT_TWO ) ) );
 	}
     }
 }
@@ -2636,15 +2649,17 @@ sc_subref_r<X>::set_cword( int i, sc_digit w )
 	n1 = m_lo - i * SC_DIGIT_SIZE;
 	n2 = sc_max( n1 - SC_DIGIT_SIZE, m_hi - 1 );
 	for( int n = n1; n > n2; n -- ) {
-	    m_obj.set_bit( n, sc_logic_value_t( ((w >> k ++) & SC_DIGIT_ONE) << 1 |
-						m_obj[n].value() & SC_DIGIT_ONE ) );
+	    m_obj.set_bit( n, value_type(
+	                             ( ((w >> k ++) & SC_DIGIT_ONE) << 1 ) |
+				     ( m_obj[n].value() & SC_DIGIT_ONE ) ) );
 	}
     } else {
 	n1 = m_lo + i * SC_DIGIT_SIZE;
 	n2 = sc_min( n1 + SC_DIGIT_SIZE, m_hi + 1 );
 	for( int n = n1; n < n2; n ++ ) {
-	    m_obj.set_bit( n, sc_logic_value_t( ((w >> k ++) & SC_DIGIT_ONE) << 1 |
-						m_obj[n].value() & SC_DIGIT_ONE ) );
+	    m_obj.set_bit( n, value_type(
+	                                ( ((w >> k ++) & SC_DIGIT_ONE) << 1 ) |
+					( m_obj[n].value() & SC_DIGIT_ONE ) ) );
 	}
     }
 }
@@ -3035,17 +3050,16 @@ sc_concref_r<X,Y>::~sc_concref_r()
 
 template <class X, class Y>
 inline
-sc_logic_value_t
+typename sc_concref_r<X,Y>::value_type
 sc_concref_r<X,Y>::get_bit( int n ) const
 {
     int r_len = m_right.length();
     if( n < r_len ) {
-	return m_right.get_bit( n );
+        return value_type(m_right.get_bit( n ));
     } else if( n < r_len + m_left.length() ) {
-	return m_left.get_bit( n - r_len );
+        return value_type(m_left.get_bit( n - r_len ));
     } else {
 	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
-	// never reached
 	return Log_0;
     }
 }
@@ -3053,13 +3067,13 @@ sc_concref_r<X,Y>::get_bit( int n ) const
 template <class X, class Y>
 inline
 void
-sc_concref_r<X,Y>::set_bit( int n, sc_logic_value_t v )
+sc_concref_r<X,Y>::set_bit( int n, value_type v )
 {
     int r_len = m_right.length();
     if( n < r_len ) {
-	m_right.set_bit( n, v );
+        m_right.set_bit( n, typename Y::value_type(v) );
     } else if( n < r_len + m_left.length() ) {
-	m_left.set_bit( n - r_len, v );
+        m_left.set_bit( n - r_len, typename X::value_type(v) );
     } else {
 	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, 0 );
     }
@@ -3858,6 +3872,54 @@ concat( sc_proxy<T1>& a, sc_proxy<T2>& b )
 }
 
 } // namespace sc_dt
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+// $Log: sc_bit_proxies.h,v $
+// Revision 1.10  2011/09/05 21:19:53  acg
+//  Philipp A. Hartmann: added parentheses to expressions to eliminate
+//  compiler warnings.
+//
+// Revision 1.9  2011/09/01 15:03:42  acg
+//  Philipp A. Hartmann: add parentheses to eliminate compiler warnings.
+//
+// Revision 1.8  2011/08/29 18:04:32  acg
+//  Philipp A. Hartmann: miscellaneous clean ups.
+//
+// Revision 1.7  2011/08/24 22:05:40  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.6  2010/02/22 14:25:43  acg
+//  Andy Goodrich: removed 'mutable' directive from references, since it
+//  is not a legal C++ construct.
+//
+// Revision 1.5  2009/02/28 00:26:14  acg
+//  Andy Goodrich: bug fixes.
+//
+// Revision 1.4  2007/03/14 17:48:37  acg
+//  Andy Goodrich: fixed bug.
+//
+// Revision 1.3  2007/01/18 19:29:18  acg
+//  Andy Goodrich: fixed bug in concatenations of bit selects on sc_lv and
+//  sc_bv types. The offending code was in sc_bitref<X>::set_word and
+//  sc_bitref<X>::get_word. These methods were not writing the bit they
+//  represented, but rather writing an entire word whose index was the
+//  index of the bit they represented. This not only did not write the
+//  correct bit, but clobbered a word that might not even be in the
+//  variable the reference was for.
+//
+// Revision 1.2  2007/01/17 22:45:08  acg
+//  Andy Goodrich: fixed sc_bitref<X>::set_bit().
+//
+// Revision 1.1.1.1  2006/12/15 20:31:36  acg
+// SystemC 2.2
+//
+// Revision 1.3  2006/01/13 18:53:53  acg
+// Andy Goodrich: added $Log command so that CVS comments are reproduced in
+// the source.
+//
 
 
 #endif

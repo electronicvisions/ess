@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -48,8 +50,8 @@
 
    Instead of creating the binary WIF format, we create the ASCII
    WIF format which can be converted to the binary format using
-   a2wif (utility that comes with VSS from Synopsys). This way, 
-   a user who does not have Synopsys VSS can still create WIF 
+   a2wif (utility that comes with VSS from Synopsys). This way,
+   a user who does not have Synopsys VSS can still create WIF
    files, but the files can only be viewed by users who have VSS.
 
  *****************************************************************************/
@@ -59,31 +61,32 @@
 
 #include <cstdio>
 #include "sysc/datatypes/int/sc_nbdefs.h"
-#include "sysc/tracing/sc_trace.h"
+#include "sysc/tracing/sc_trace_file_base.h"
 
 namespace sc_core {
 
 class wif_trace;  // defined in wif_trace.cc
 template<class T> class wif_T_trace;
 
-class wif_trace_file : public sc_trace_file{
+class wif_trace_file
+  : public sc_trace_file_base
+{
 public:
     enum wif_enum {WIF_BIT=0, WIF_MVL=1, WIF_REAL=2, WIF_LAST};
 
-	// sc_set_wif_time_unit is deprecated.
-    inline void sc_set_wif_time_unit(int exponent10_seconds)
-        { set_time_unit(exponent10_seconds); }
-
     // Create a wif trace file.
     // `Name' forms the base of the name to which `.awif' is added.
-    wif_trace_file(const char *name);
+    explicit wif_trace_file(const char *name);
 
-    // Flush results and close file.
     ~wif_trace_file();
 
 protected:
     // These are all virtual functions in sc_trace_file and
     // they need to be defined here.
+
+    // Trace sc_time, sc_event
+    virtual void trace(const sc_time& object, const std::string& name);
+    virtual void trace(const sc_event& object, const std::string& name);
 
     // Trace a boolean object (single bit)
      void trace(const bool& object, const std::string& name);
@@ -93,21 +96,21 @@ protected:
 
     // Trace a sc_logic object (single bit)
      void trace(const sc_dt::sc_logic& object, const std::string& name);
-    
+
     // Trace an unsigned char with the given width
-     void trace(const unsigned char& object, const std::string& name, 
+     void trace(const unsigned char& object, const std::string& name,
 	int width);
 
     // Trace an unsigned short with the given width
-     void trace(const unsigned short& object, const std::string& name, 
+     void trace(const unsigned short& object, const std::string& name,
          int width);
 
     // Trace an unsigned int with the given width
-     void trace(const unsigned int& object, const std::string& name, 
+     void trace(const unsigned int& object, const std::string& name,
          int width);
 
     // Trace an unsigned long with the given width
-     void trace(const unsigned long& object, const std::string& name, 
+     void trace(const unsigned long& object, const std::string& name,
          int width);
 
     // Trace a signed char with the given width
@@ -121,15 +124,15 @@ protected:
 
     // Trace a signed long with the given width
      void trace(const long& object, const std::string& name, int width);
-    
+
     // Trace a signed long long with the given width
-     void trace(const sc_dt::int64& object, const std::string& name, 
+     void trace(const sc_dt::int64& object, const std::string& name,
          int width);
-    
+
     // Trace an usigned long long with the given width
-     void trace(const sc_dt::uint64& object, const std::string& name, 
+     void trace(const sc_dt::uint64& object, const std::string& name,
          int width);
-    
+
     // Trace a float
      void trace(const float& object, const std::string& name);
 
@@ -137,15 +140,15 @@ protected:
      void trace(const double& object, const std::string& name);
 
     // Trace sc_unsigned
-     void trace (const sc_dt::sc_unsigned& object, 
+     void trace (const sc_dt::sc_unsigned& object,
 	 const std::string& name);
 
     // Trace sc_signed
-     void trace (const sc_dt::sc_signed& object, 
+     void trace (const sc_dt::sc_signed& object,
 	 const std::string& name);
 
     // Trace sc_uint_base
-     void trace (const sc_dt::sc_uint_base& object, 
+     void trace (const sc_dt::sc_uint_base& object,
          const std::string& name);
 
     // Trace sc_int_base
@@ -155,80 +158,68 @@ protected:
     void trace( const sc_dt::sc_fxval& object, const std::string& name );
 
     // Trace sc_fxval_fast
-    void trace( const sc_dt::sc_fxval_fast& object, 
+    void trace( const sc_dt::sc_fxval_fast& object,
     	const std::string& name );
 
     // Trace sc_fxnum
     void trace( const sc_dt::sc_fxnum& object, const std::string& name );
 
     // Trace sc_fxnum_fast
-    void trace( const sc_dt::sc_fxnum_fast& object, 
+    void trace( const sc_dt::sc_fxnum_fast& object,
     	const std::string& name );
 
     template<class T>
     void traceT(const T& object, const std::string& name, wif_enum type)
     {
-      if(initialized)
-        put_error_message("No traces can be added once simulation has"
-        " started.\nTo add traces, create a new wif trace file.", false);
-      else
-        traces.push_back(new wif_T_trace<T>(object, name,
-          obtain_new_index(),type));
+        if( add_trace_check(name) )
+            traces.push_back( new wif_T_trace<T>( object, name
+                                                , obtain_name(),type ) );
     }
 
     // Trace sc_bv_base (sc_bv)
-    virtual void trace( const sc_dt::sc_bv_base& object, 
+    virtual void trace( const sc_dt::sc_bv_base& object,
     	const std::string& name );
 
     // Trace sc_lv_base (sc_lv)
-    virtual void trace( const sc_dt::sc_lv_base& object, 
+    virtual void trace( const sc_dt::sc_lv_base& object,
     	const std::string& name );
 
     // Trace an enumerated object - where possible output the enumeration literals
     // in the trace file. Enum literals is a null terminated array of null
     // terminated char* literal strings.
-     void trace(const unsigned& object, const std::string& name, 
+     void trace(const unsigned& object, const std::string& name,
          const char** enum_literals);
 
     // Output a comment to the trace file
      void write_comment(const std::string& comment);
 
-    // Also trace transitions between delta cycles if flag is true.
-     void delta_cycles(bool flag);
-
     // Write trace info for cycle.
      void cycle(bool delta_cycle);
 
 private:
+
+#if SC_TRACING_PHASE_CALLBACKS_
+    // avoid hidden overload warnings
+    virtual void trace( sc_trace_file* ) const;
+#endif // SC_TRACING_PHASE_CALLBACKS_
+
     // Initialize the tracing mechanism
-    void initialize();
+    virtual void do_initialize();
 
-    // Create wif names for each variable
-    void create_wif_name(std::string* ptr_to_str);
+    unsigned wif_name_index;           // Number of variables traced
 
-    // Pointer to the file that needs to be written
-    FILE* fp;
-
-    bool trace_delta_cycles;    // = 1 means trace the delta cycles
-
-    unsigned wif_name_index;    // Number of variables traced
-
-    unsigned previous_time_units_low, previous_time_units_high; // Previous time as 64 bit integer
-    double previous_time;       // Previous time as a double
+    unit_type previous_units_low;
+    unit_type previous_units_high;
 
 public:
-
-    // same as create_wif_name (corrected style)
-    std::string obtain_new_index();
+    // Create wif names for each variable
+    std::string obtain_name();
 
     // Array to store the variables traced
     std::vector<wif_trace*> traces;
 };
 
-// Create WIF file
-extern sc_trace_file *sc_create_wif_trace_file(const char *name);
-extern void sc_close_wif_trace_file( sc_trace_file* tf );
-
 } //  namespace sc_core
 
-#endif
+#endif // SC_WIF_TRACE_H
+// Taf!

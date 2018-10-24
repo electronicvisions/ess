@@ -66,22 +66,12 @@ def build(ctx):
         'systemsim/CompoundNeuronModule.cpp',
         ] ]
 
-    #soucres = ctx.path.ant_glob("systemsim/*.cpp")
-
     includes = [ ctx.path.find_dir(x) for x in [
             'global_src/systemc',
             'systemc_for_python/src',
             '.'
     ] ]
     includes += [os.path.join(base_dir, 'odeint-v2', 'include')]
-
-    flags = {
-            "cxxflags" : ['-ggdb3', '-O0', '-std=c++0x',
-                '-Wall', '-Wno-unused-parameter', '-Wno-unused-variable',
-                '-Wno-parentheses', '-Wextra'],
-            "linkflags" : ['-Wl,-zdefs'],
-            "defines" : [ 'USE_HAL', 'USE_SCTYPES', 'VIRTUAL_HARDWARE']
-    }
 
     ctx(
         target          = 'systemsim',
@@ -99,18 +89,12 @@ def build(ctx):
                            'BOOST4SYSTEMSIM',
                            'PTHREAD'],
         install_path    = "${PREFIX}/lib",
-        **flags
+        defines         = [ 'USE_HAL', 'USE_SCTYPES', 'VIRTUAL_HARDWARE']
     )
 
     ctx(target          = 'test-systemsim',
         features        = 'cxx cxxprogram gtest',
         source          = ctx.path.ant_glob('test/gtest/*.cpp'),
         install_path    = os.path.join('bin', 'tests'),
-        use             = [ 'systemsim' ],
-        cxxflags        = [
-                '-g', '-O0',
-                '-std=c++0x',
-                '-Wall',
-                '-Wextra',
-                '-pedantic',
-            ])
+        use             = [ 'systemsim' ]
+    )

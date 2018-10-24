@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,25 +23,9 @@
 
   Original Author: Stan Y. Liao, Synopsys, Inc.
 
+  CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
 
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-
-// $Log: sc_macros.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:37  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:44:29  acg
-// Added $Log to record CVS changes into the source.
-//
 
 #ifndef SC_MACROS_H
 #define SC_MACROS_H
@@ -87,67 +73,64 @@ sc_abs( const T& a )
 
 namespace sc_core {
 
+// token stringification
 
-#if defined(__GNUC__) && defined(USE_RTTI)
-#define HAVE_CAST_OPERATORS
-#endif
-
-
-#if defined(__GNUC__)
-// 10.3.5 - Some compilers (e.g. K&A C++) do not support the
-// construct in which a virtual function defined in a subclass returns
-// a pointer or reference to a class D whereas the declaration of the
-// same virtual function in the base class returns a pointer or
-// reference to a base class B of D.
-#define ANSI_VIRTUAL_RETURN_INHERITED_TYPE
-#endif
+#define SC_STRINGIFY_HELPER_( Arg ) \
+  SC_STRINGIFY_HELPER_DEFERRED_( Arg )
+#define SC_STRINGIFY_HELPER_DEFERRED_( Arg ) \
+  SC_STRINGIFY_HELPER_MORE_DEFERRED_( Arg )
+#define SC_STRINGIFY_HELPER_MORE_DEFERRED_( Arg ) \
+  #Arg 
 
 
-/*
- *  Note that sc_get_curr_simcontext() may also be a member
- *  of sc_module. The idea is that if we are inside an sc_module,
- *  then its associated simcontext should always be the current
- *  simcontext.
- */
-
-#define W_BEGIN                                                               \
-    do {                                                                      \
-        sc_watch __aux_watch( sc_get_curr_simcontext() );
-
-#define W_DO                                                                  \
-        try {                                                                 \
-            __watching_first( __aux_watch.cthread_h );
-
-#define W_ESCAPE                                                              \
-        }                                                                     \
-        catch( int sc_level ) {                                               \
-            __sanitycheck_watchlists( __aux_watch.cthread_h );                \
-            if( sc_level < __watch_level( __aux_watch.cthread_h ) ) {         \
-                throw sc_level;                                               \
-            }
-
-#define W_END                                                                 \
-        }                                                                     \
-    } while( false );
-
+// token concatenation
+#define SC_CONCAT_HELPER_( a, b ) \
+  SC_CONCAT_HELPER_DEFERRED_( a, b )
+#define SC_CONCAT_HELPER_DEFERRED_( a, b ) \
+  SC_CONCAT_HELPER_MORE_DEFERRED_( a,b )
+#define SC_CONCAT_HELPER_MORE_DEFERRED_( a, b ) \
+  a ## b
+#define SC_CONCAT_UNDERSCORE_( a, b ) \
+  SC_CONCAT_HELPER_( a, SC_CONCAT_HELPER_( _, b ) )
 
 /*
  *  These help debugging --
- *  -- user can find out where each process is stopped at.
+ *  -- the user can find out at which location in their source file a process calls wait.
  */
 
-#define WAIT()                                                                \
-    sc_set_location( __FILE__, __LINE__ );                                    \
-    wait()
+#define SC_WAIT()                                       \
+    ::sc_core::sc_set_location( __FILE__, __LINE__ );   \
+    ::sc_core::wait();                                  \
+    ::sc_core::sc_set_location( NULL, 0 )
 
-#define WAITN(n)                                                              \
-    sc_set_location( __FILE__, __LINE__ );                                    \
-    wait(n)
+#define SC_WAITN(n)                                     \
+    ::sc_core::sc_set_location( __FILE__, __LINE__ );   \
+    ::sc_core::wait(n);                                 \
+    ::sc_core::sc_set_location( NULL, 0 )
 
-#define WAIT_UNTIL(expr)                                                    \
-    sc_set_location( __FILE__, __LINE__ );                                    \
-    do { wait(); } while( !(expr) )
+#define SC_WAIT_UNTIL(expr)                             \
+  do { SC_WAIT(); } while( !(expr) )
 
 } // namespace sc_core
+
+// $Log: sc_macros.h,v $
+// Revision 1.5  2011/08/26 20:46:09  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.4  2011/02/18 20:27:14  acg
+//  Andy Goodrich: Updated Copyrights.
+//
+// Revision 1.3  2011/02/13 21:47:37  acg
+//  Andy Goodrich: update copyright notice.
+//
+// Revision 1.2  2008/05/22 17:06:25  acg
+//  Andy Goodrich: updated copyright notice to include 2008.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:44:29  acg
+// Added $Log to record CVS changes into the source.
 
 #endif

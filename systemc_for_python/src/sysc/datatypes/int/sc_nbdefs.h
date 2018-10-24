@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,7 +23,7 @@
                  arithmetic. This file defines all the constants needed.
 
   Original Author: Ali Dasdan, Synopsys, Inc.
-  
+
  *****************************************************************************/
 
 /*****************************************************************************
@@ -29,14 +31,30 @@
   MODIFICATION LOG - modifiers, enter your name, affiliation, date and
   changes you are making here.
 
-      Name, Affiliation, Date:
-  Description of Modification:
+      Name, Affiliation, Date: Torsten Maehne, Berner Fachhochschule, 2016-09-24
+  Description of Modification: Move constant definitions to the header so that
+                               that their value is known at compile time.
 
  *****************************************************************************/
 
 // $Log: sc_nbdefs.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.7  2011/02/18 20:19:15  acg
+//  Andy Goodrich: updating Copyright notice.
+//
+// Revision 1.6  2011/02/18 20:09:34  acg
+//  Philipp A. Hartmann: added alternative #define for Windows to guard.
+//
+// Revision 1.5  2011/01/20 16:52:20  acg
+//  Andy Goodrich: changes for IEEE 1666 2011.
+//
+// Revision 1.4  2010/02/08 18:35:55  acg
+//  Andy Goodrich: Philipp Hartmann's changes for Solaris and Linux 64.
+//
+// Revision 1.2  2009/05/22 16:06:29  acg
+//  Andy Goodrich: process control updates.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:49:32  acg
 // Added $Log command so that CVS check in comments are reproduced in the
@@ -51,18 +69,43 @@
 
 #include <climits>
 
-#include "sysc/utils/sc_iostream.h"
-#include "sysc/kernel/sc_constants.h"   // For SC_MAX_NBITS
-#include "sysc/utils/sc_string.h"      // For sc_numrep
-
-
-#if defined( __SUNPRO_CC ) || defined( _MSC_VER ) || 1
-#define SC_DT_MIXED_COMMA_OPERATORS
+#if defined(__sun) || defined(__sun__)
+#  include <inttypes.h>
+#elif !defined(WIN32) && !defined(_WIN32)
+#  include <stdint.h>
 #endif
+
+#include "sysc/kernel/sc_constants.h"   // For SC_MAX_NBITS
+
+// Activate support mixed operands for concatenation via the comma operator
+#define SC_DT_MIXED_COMMA_OPERATORS
 
 
 namespace sc_dt
 {
+
+// ----------------------------------------------------------------------------
+//  ENUM : sc_numrep
+//
+//  Enumeration of number representations for character string conversion.
+// ----------------------------------------------------------------------------
+
+enum sc_numrep
+{
+    SC_NOBASE = 0,
+    SC_BIN    = 2,
+    SC_OCT    = 8,
+    SC_DEC    = 10,
+    SC_HEX    = 16,
+    SC_BIN_US,
+    SC_BIN_SM,
+    SC_OCT_US,
+    SC_OCT_SM,
+    SC_HEX_US,
+    SC_HEX_SM,
+    SC_CSD
+};
+
 
 // Sign of a number:
 #define SC_NEG       -1     // Negative number
@@ -113,7 +156,7 @@ typedef int small_type;
 #define DIV_CEIL(x) DIV_CEIL2(x, BITS_PER_DIGIT)
 
 #ifdef SC_MAX_NBITS
-extern const int MAX_NDIGITS;
+static const int MAX_NDIGITS = DIV_CEIL(SC_MAX_NBITS) + 2;
 // Consider a number with x bits another with y bits. The maximum
 // number of bits happens when we multiply them. The result will have
 // (x + y) bits. Assume that x + y <= SC_MAX_NBITS. Then, DIV_CEIL(x) +
@@ -123,28 +166,37 @@ extern const int MAX_NDIGITS;
 #endif
 
 // Support for "digit" vectors used to hold the values of sc_signed,
-// sc_unsigned, sc_bv_base,  and sc_lv_base data types. This type is also used 
-// in the concatenation support. An sc_digit is currently an unsigned 32-bit 
+// sc_unsigned, sc_bv_base,  and sc_lv_base data types. This type is also used
+// in the concatenation support. An sc_digit is currently an unsigned 32-bit
 // quantity. The typedef used is an unsigned int, rather than an unsigned long,
-// since the unsigned long data type varies in size between 32-bit and 64-bit 
+// since the unsigned long data type varies in size between 32-bit and 64-bit
 // machines.
 
 typedef unsigned int sc_digit;	// 32-bit unsigned integer
 
 // Support for the long long type. This type is not in the standard
 // but is usually supported by compilers.
-#ifndef WIN32
-    typedef long long          int64;
-    typedef unsigned long long uint64;
-    extern const uint64        UINT64_ZERO;
-    extern const uint64        UINT64_ONE;
-    extern const uint64        UINT64_32ONES;
+#ifndef _WIN32
+#   if defined(__x86_64__) || defined(__aarch64__)
+        typedef long long          int64;
+        typedef unsigned long long uint64;
+#   else
+        typedef int64_t            int64;
+        typedef uint64_t           uint64;
+#   endif
 #else
     typedef __int64            int64;
     typedef unsigned __int64   uint64;
-    extern const uint64        UINT64_ZERO;
-    extern const uint64        UINT64_ONE;
-    extern const uint64        UINT64_32ONES;
+#endif
+
+#if !defined(_WIN32) || defined(__MINGW32__)
+    static const uint64 UINT64_ZERO   = 0ULL;
+    static const uint64 UINT64_ONE    = 1ULL;
+    static const uint64 UINT64_32ONES = 0x00000000ffffffffULL;
+#else
+    static const uint64 UINT64_ZERO   = 0i64;
+    static const uint64 UINT64_ONE    = 1i64;
+    static const uint64 UINT64_32ONES = 0x00000000ffffffffi64;
 #endif
 
 
@@ -153,10 +205,10 @@ typedef unsigned int sc_digit;	// 32-bit unsigned integer
 #define BITS_PER_CHAR    8
 #define BITS_PER_INT    (sizeof(int) * BITS_PER_CHAR)
 #define BITS_PER_LONG   (sizeof(long) * BITS_PER_CHAR)
-#define BITS_PER_INT64  (sizeof(long long) * BITS_PER_CHAR)
+#define BITS_PER_INT64  (sizeof(::sc_dt::int64) * BITS_PER_CHAR)
 #define BITS_PER_UINT   (sizeof(unsigned int) * BITS_PER_CHAR)
 #define BITS_PER_ULONG  (sizeof(unsigned long) * BITS_PER_CHAR)
-#define BITS_PER_UINT64 (sizeof(unsigned long long) * BITS_PER_CHAR)
+#define BITS_PER_UINT64 (sizeof(::sc_dt::uint64) * BITS_PER_CHAR)
 
 // Digits per ...
 #define DIGITS_PER_CHAR   1
@@ -170,65 +222,16 @@ typedef unsigned int sc_digit;	// 32-bit unsigned integer
 // Above, BITS_PER_X is mainly used for sc_signed, and BITS_PER_UX is
 // mainly used for sc_unsigned.
 
-#if defined( WIN32 ) || defined( __SUNPRO_CC ) || defined( __HP_aCC )
-typedef unsigned long fmtflags;
-#else
-typedef ::std::ios::fmtflags fmtflags;
-#endif
-
-extern const small_type NB_DEFAULT_BASE ;
+static const small_type NB_DEFAULT_BASE = SC_DEC;
 
 // For sc_int code:
-#define LLWIDTH  BITS_PER_INT64
-#define INTWIDTH BITS_PER_INT
 
-#ifndef _32BIT_
-
-typedef int64 int_type;
-typedef uint64 uint_type;
-#define SC_INTWIDTH 64
-extern const uint64 UINT_ZERO;
-extern const uint64 UINT_ONE;
-
-#else
-
-typedef int int_type;
-typedef unsigned int uint_type;
-#define SC_INTWIDTH 32
-extern const unsigned int UINT_ZERO;
-extern const unsigned int UINT_ONE;
-
-#endif
-
-
-#if defined(_MSC_VER) && ( _MSC_VER < 1300 )
-    // VC++6 bug
-    ::std::ostream& operator << ( ::std::ostream&, int64 );
-    ::std::ostream& operator << ( ::std::ostream&, uint64 );
-#endif
+    typedef int64 int_type;
+    typedef uint64 uint_type;
+#   define SC_INTWIDTH 64
+    static const uint64 UINT_ZERO = UINT64_ZERO;
+    static const uint64 UINT_ONE = UINT64_ONE;
 
 } // namespace sc_dt
-
-
-#if defined(_MSC_VER) && ( _MSC_VER < 1300 )
-
-    inline
-    ::std::ostream&
-    operator << ( ::std::ostream& os, sc_dt::int64 a )
-    {
-	sc_dt::operator << ( os, a );
-	return os;
-    }
-
-    inline
-    ::std::ostream&
-    operator << ( ::std::ostream& os, sc_dt::uint64 a )
-    {
-	sc_dt::operator << ( os, a );
-	return os;
-    }
-
-#endif
-
 
 #endif

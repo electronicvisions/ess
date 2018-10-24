@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,30 +23,15 @@
 
   Original Author: Martin Janssen, Synopsys, Inc., 2001-05-21
 
+  CHANGE LOG IS AT THE END OF THE FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-    
- *****************************************************************************/
-
-
-// $Log: sc_semaphore.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:35  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:47:42  acg
-// Added $Log command so that CVS comments are reproduced in the source.
-//
 
 #include "sysc/communication/sc_communication_ids.h"
 #include "sysc/communication/sc_semaphore.h"
 #include "sysc/kernel/sc_simcontext.h"
+#include "sysc/kernel/sc_wait.h"
+
+#include <sstream>
 
 namespace sc_core {
 
@@ -59,20 +46,19 @@ namespace sc_core {
 void
 sc_semaphore::report_error( const char* id, const char* add_msg ) const
 {
-    char msg[BUFSIZ];
-    if( add_msg != 0 ) {
-	std::sprintf( msg, "%s: semaphore '%s'", add_msg, name() );
-    } else {
-	std::sprintf( msg, "semaphore '%s'", name() );
-    }
-    SC_REPORT_ERROR( id, msg );
+    std::stringstream msg;
+    if (add_msg != 0)
+        msg << add_msg << ": ";
+    msg << "semaphore '" << name() << "'";
+    SC_REPORT_ERROR( id, msg.str().c_str() );
 }
 
 
 // constructors
 
 sc_semaphore::sc_semaphore( int init_value_ )
-: sc_prim_channel( sc_gen_unique_name( "semaphore" ) ),
+: sc_object( sc_gen_unique_name( "semaphore" ) ),
+  m_free( sc_event::kernel_event, "free_event" ),
   m_value( init_value_ )
 {
     if( m_value < 0 ) {
@@ -81,7 +67,9 @@ sc_semaphore::sc_semaphore( int init_value_ )
 }
 
 sc_semaphore::sc_semaphore( const char* name_, int init_value_ )
-: sc_prim_channel( name_ ), m_value( init_value_ )
+: sc_object( name_ ), 
+  m_free( sc_event::kernel_event, "free_event" ),
+  m_value( init_value_ )
 {
     if( m_value < 0 ) {
 	report_error( SC_ID_INVALID_SEMAPHORE_VALUE_ );
@@ -97,7 +85,7 @@ int
 sc_semaphore::wait()
 {
     while( in_use() ) {
-	sc_prim_channel::wait( m_free );
+	sc_core::wait( m_free, sc_get_curr_simcontext() );
     }
     -- m_value;
     return 0;
@@ -128,5 +116,33 @@ sc_semaphore::post()
 }
 
 } // namespace sc_core
+
+// $Log: sc_semaphore.cpp,v $
+// Revision 1.5  2011/08/26 20:45:42  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.4  2011/03/23 16:17:22  acg
+//  Andy Goodrich: hide the sc_events that are kernel related.
+//
+// Revision 1.3  2011/02/18 20:23:45  acg
+//  Andy Goodrich: Copyright update.
+//
+// Revision 1.2  2010/11/02 16:31:01  acg
+//  Andy Goodrich: changed object derivation to use sc_object rather than
+//  sc_prim_channel as the parent class.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
+//
+// Revision 1.6  2006/11/28 20:30:49  acg
+//  Andy Goodrich: updated from 2.2 source. sc_event_queue constructors
+//  collapsed into a single constructor with an optional argument to get
+//  the sc_module_name stack done correctly. Class name prefixing added
+//  to sc_semaphore calls to wait() to keep gcc 4.x happy.
+//
+// Revision 1.3  2006/01/13 18:47:42  acg
+// Added $Log command so that CVS comments are reproduced in the source.
+//
 
 // Taf!

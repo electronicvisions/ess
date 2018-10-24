@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2005 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.3 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -168,12 +170,14 @@ sc_signed_subref::operator = ( const sc_signed_subref& v )
 const sc_signed_subref& 
 sc_signed_subref::operator = ( const sc_signed& v )
 {
+    int i;
     int l = sc_min( m_left, v.nbits - 1 + m_right );
-    for( int i = m_right; i <= l; ++ i ) {
-	m_obj_p->set( i, v.test( i - m_right ) );
-    }
+
+    for( i = m_right; i <= l; ++ i ) m_obj_p->set( i, v.test( i - m_right ) );
+    for ( ; i <= m_left; i++ ) m_obj_p->set( i, v.test( l ) );
+
     return *this;
-} // #### BUG : WHAT ABOUT SIGN EXTENSION?
+} 
 
 const sc_signed_subref& 
 sc_signed_subref::operator = ( const sc_unsigned_subref_r& v )
@@ -184,12 +188,13 @@ sc_signed_subref::operator = ( const sc_unsigned_subref_r& v )
 const sc_signed_subref& 
 sc_signed_subref::operator = ( const sc_unsigned& v )
 {
+    int i;
     int l = sc_min( m_left, v.nbits - 1 + m_right );
-    for( int i = m_right; i <= l; ++ i ) {
-	m_obj_p->set( i, v.test( i - m_right ) );
-    }
+
+    for( i = m_right; i <= l; ++ i ) m_obj_p->set( i, v.test( i - m_right ) );
+    for ( ; i <= m_left; i++ ) m_obj_p->set( i, 0 );
     return *this;
-} // #### BUG: WHAT ABOUT SIGN EXTENSION AND FACT nbits IS ONE TOO HIGH?
+} 
 
 const sc_signed_subref& 
 sc_signed_subref::operator = ( unsigned long v )
@@ -250,13 +255,13 @@ sc_signed_subref::operator = ( double v )
     if (v < 0)
 	v = -v;
 
-    register int i = 0;
+    int i = 0;
 
-    while (floor(v) && (i < nd)) {
-#ifndef WIN32
-	d[i++] = (sc_digit) floor(remainder(v, DIGIT_RADIX));
+    while (std::floor(v) && (i < nd)) {
+#ifndef _WIN32
+	d[i++] = (sc_digit) std::floor(remainder(v, DIGIT_RADIX));
 #else
-	d[i++] = (sc_digit) floor(fmod(v, DIGIT_RADIX));
+	d[i++] = (sc_digit) std::floor(std::fmod(v, DIGIT_RADIX));
 #endif
 	v /= DIGIT_RADIX;
     }

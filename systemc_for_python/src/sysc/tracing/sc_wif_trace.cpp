@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -52,16 +54,15 @@
 
    Instead of creating the binary WIF format, we create the ASCII
    WIF format which can be converted to the binary format using
-   a2wif (utility that comes with VSS from Synopsys). This way, 
-   a user who does not have Synopsys VSS can still create WIF 
+   a2wif (utility that comes with VSS from Synopsys). This way,
+   a user who does not have Synopsys VSS can still create WIF
    files, but they can only be viewed by users who have VSS.
 
  *****************************************************************************/
 
 
-#include <assert.h>
-#include <time.h>
 #include <cstdlib>
+#include <vector>
 
 #include "sysc/kernel/sc_simcontext.h"
 #include "sysc/kernel/sc_ver.h"
@@ -75,9 +76,14 @@
 #include "sysc/datatypes/fx/fx.h"
 #include "sysc/tracing/sc_wif_trace.h"
 
-namespace sc_core {
+#include <sstream>
+#include <iomanip>
 
-static bool running_regression = false;
+#if defined(_MSC_VER)
+# pragma warning(disable:4309) // truncation of constant value
+#endif
+
+namespace sc_core {
 
 // Forward declarations for functions that come later in the file
 static char map_sc_logic_state_to_wif_state(char in_char);
@@ -100,7 +106,7 @@ public:
     // Needs to be pure virtual as has to be defined by the particular
     // type being traced
     virtual void write(FILE* f) = 0;
-    
+
     virtual void set_width();
 
     // Comparison function needs to be pure virtual too
@@ -115,35 +121,37 @@ public:
     const std::string name;     // Name of the variable
     const std::string wif_name; // Name of the variable in WIF file
     const char* wif_type;     // WIF data type
-    int bit_width; 
+    int bit_width;
 };
 
 
-wif_trace::wif_trace(const std::string& name_, 
+wif_trace::wif_trace(const std::string& name_,
 	const std::string& wif_name_)
-        : name(name_), wif_name(wif_name_), bit_width(-1)
+        : name(name_), wif_name(wif_name_), wif_type(0), bit_width(-1)
 {
     /* Intentionally blank */
 }
-        
+
 void
 wif_trace::print_variable_declaration_line( FILE* f )
 {
-    char buf[2000];
-
-    if( bit_width < 0 ) {
-        std::sprintf( buf, "Traced object \"%s\" has < 0 Bits, cannot be traced.",
-	      name.c_str() );
-        put_error_message( buf, false );
-    } else {
-        std::fprintf( f, "declare  %s   \"%s\"  %s  ",
-	    wif_name.c_str(), name.c_str(), wif_type );
-	if( bit_width > 0 ) {
-	    std::fprintf( f, "0 %d ", bit_width - 1 );
-	}
-	std::fprintf( f, "variable ;\n" );
-	std::fprintf( f, "start_trace %s ;\n", wif_name.c_str() );
+    if( bit_width < 0 )
+    {
+        std::stringstream ss;
+        ss << "'" << name << "' has < 0 bits";
+        SC_REPORT_ERROR( SC_ID_TRACING_OBJECT_IGNORED_
+                       , ss.str().c_str() );
+        return;
     }
+
+    std::fprintf( f, "declare  %s   \"%s\"  %s  ",
+                  wif_name.c_str(), name.c_str(), wif_type );
+
+    if( bit_width > 0 ) {
+        std::fprintf( f, "0 %d ", bit_width - 1 );
+    }
+    std::fprintf( f, "variable ;\n" );
+    std::fprintf( f, "start_trace %s ;\n", wif_name.c_str() );
 }
 
 void
@@ -173,20 +181,20 @@ public:
 protected:
     const sc_dt::uint64& object;
     sc_dt::uint64 old_value;
-    sc_dt::uint64 mask; 
+    sc_dt::uint64 mask;
 };
 
 
 wif_uint64_trace::wif_uint64_trace(const sc_dt::uint64& object_,
                          const std::string& name_,
                          const std::string& wif_name_,
-                         int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+                         int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(static_cast<sc_dt::uint64>(-1))
 {
     bit_width = width_;
-    mask = (sc_dt::uint64)-1;
-    if (bit_width < 32) mask = ~(mask << bit_width);
-    old_value = object;
+    if (bit_width < static_cast<int>(sizeof(sc_dt::uint64)*BITS_PER_BYTE))
+        mask = ~(mask << bit_width);
     wif_type = "BIT";
 }
 
@@ -203,7 +211,7 @@ void wif_uint64_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if ((object & mask) != object) 
+    if ((object & mask) != object)
     {
         for (bitindex = 0; bitindex < bit_width; bitindex++)
         {
@@ -214,14 +222,14 @@ void wif_uint64_trace::write(FILE* f)
     {
         sc_dt::uint64 bit_mask = 1;
         bit_mask = bit_mask << (bit_width-1);
-        for (bitindex = 0; bitindex < bit_width; bitindex++) 
+        for (bitindex = 0; bitindex < bit_width; bitindex++)
         {
             buf[bitindex] = (object & bit_mask)? '1' : '0';
             bit_mask = bit_mask >> 1;
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -239,20 +247,20 @@ public:
 protected:
     const sc_dt::int64& object;
     sc_dt::int64 old_value;
-    sc_dt::uint64 mask; 
+    sc_dt::uint64 mask;
 };
 
 
 wif_int64_trace::wif_int64_trace(const sc_dt::int64& object_,
                          const std::string& name_,
                          const std::string& wif_name_,
-                         int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+                         int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(static_cast<sc_dt::uint64>(-1))
 {
     bit_width = width_;
-    mask = (sc_dt::uint64)-1;
-    if (bit_width < 32) mask = ~(mask << bit_width);
-    old_value = object;
+    if (bit_width < static_cast<int>(sizeof(sc_dt::int64)*BITS_PER_BYTE))
+        mask = ~(mask << bit_width);
     wif_type = "BIT";
 }
 
@@ -269,7 +277,7 @@ void wif_int64_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if ((object & mask) != (sc_dt::uint64)object) 
+    if ((object & mask) != static_cast<sc_dt::uint64>(object))
     {
         for (bitindex = 0; bitindex < bit_width; bitindex++)
         {
@@ -280,14 +288,14 @@ void wif_int64_trace::write(FILE* f)
     {
         sc_dt::uint64 bit_mask = 1;
         bit_mask = bit_mask << (bit_width-1);
-        for (bitindex = 0; bitindex < bit_width; bitindex++) 
+        for (bitindex = 0; bitindex < bit_width; bitindex++)
         {
             buf[bitindex] = (object & bit_mask)? '1' : '0';
             bit_mask = bit_mask >> 1;
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -304,7 +312,7 @@ public:
     void write( FILE* f );
     bool changed();
 
-protected:    
+protected:
 
     const bool& object;
     bool        old_value;
@@ -313,11 +321,9 @@ protected:
 wif_bool_trace::wif_bool_trace( const bool& object_,
 				const std::string& name_,
 				const std::string& wif_name_ )
-: wif_trace( name_, wif_name_ ),
-  object( object_ )
+: wif_trace( name_, wif_name_ ), object( object_ ), old_value( object_ )
 {
     bit_width = 0;
-    old_value = object_;
     wif_type = "BIT";
 }
 
@@ -342,13 +348,13 @@ wif_bool_trace::write( FILE* f )
 
 class wif_sc_bit_trace : public wif_trace {
 public:
-    wif_sc_bit_trace(const sc_dt::sc_bit& object_, 
+    wif_sc_bit_trace(const sc_dt::sc_bit& object_,
                      const std::string& name_,
                      const std::string& wif_name_);
     void write(FILE* f);
     bool changed();
 
-protected:    
+protected:
     const sc_dt::sc_bit& object;
     sc_dt::sc_bit old_value;
 };
@@ -356,10 +362,9 @@ protected:
 wif_sc_bit_trace::wif_sc_bit_trace(const sc_dt::sc_bit& object_,
 				   const std::string& name_,
 				   const std::string& wif_name_)
-: wif_trace(name_, wif_name_), object(object_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_)
 {
     bit_width = 0;
-    old_value = object_;
     wif_type = "BIT";
 }
 
@@ -388,7 +393,7 @@ public:
     void write(FILE* f);
     bool changed();
 
-protected:    
+protected:
     const sc_dt::sc_logic& object;
     sc_dt::sc_logic old_value;
 };
@@ -396,11 +401,10 @@ protected:
 
 wif_sc_logic_trace::wif_sc_logic_trace(const sc_dt::sc_logic& object_,
 				       const std::string& name_,
-				       const std::string& wif_name_) 
-: wif_trace(name_, wif_name_), object(object_)
+				       const std::string& wif_name_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_)
 {
     bit_width = 0;
-    old_value = object;
     wif_type = "MVL";
 }
 
@@ -416,7 +420,7 @@ void wif_sc_logic_trace::write(FILE* f)
     char wif_char;
     std::fprintf(f, "assign %s \'", wif_name.c_str());
     wif_char = map_sc_logic_state_to_wif_state(object.to_char());
-    std::fputc(wif_char, f); 
+    std::fputc(wif_char, f);
     std::fprintf(f,"\' ;\n");
     old_value = object;
 }
@@ -433,7 +437,7 @@ public:
     bool changed();
     void set_width();
 
-protected:    
+protected:
     const sc_dt::sc_unsigned& object;
     sc_dt::sc_unsigned old_value;
 };
@@ -441,7 +445,7 @@ protected:
 
 wif_sc_unsigned_trace::wif_sc_unsigned_trace(const sc_dt::sc_unsigned& object_,
 					     const std::string& name_,
-					     const std::string& wif_name_) 
+					     const std::string& wif_name_)
 : wif_trace(name_, wif_name_), object(object_), old_value(object_.length())
 {
     old_value = object;
@@ -455,14 +459,20 @@ bool wif_sc_unsigned_trace::changed()
 
 void wif_sc_unsigned_trace::write(FILE* f)
 {
-    char buf[1000], *buf_ptr = buf;
+    static std::vector<char> buf(1024);
+    typedef std::vector<char>::size_type size_t;
 
-    int bitindex;
-    for(bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
-        *buf_ptr++ = "01"[(object)[bitindex]];
+    if ( buf.size() < static_cast<size_t>(object.length()) ) {
+        size_t sz = ( static_cast<size_t>(object.length()) + 4096 ) & (~static_cast<size_t>(4096-1));
+        std::vector<char>( sz ).swap( buf ); // resize without copying values
+    }
+    char *buf_ptr = &buf[0];
+
+    for(int bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
+        *buf_ptr++ = "01"[object[bitindex].to_bool()];
     }
     *buf_ptr = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), &buf[0]);
     old_value = object;
 }
 
@@ -483,7 +493,7 @@ public:
     bool changed();
     void set_width();
 
-protected:    
+protected:
     const sc_dt::sc_signed& object;
     sc_dt::sc_signed old_value;
 };
@@ -491,7 +501,7 @@ protected:
 
 wif_sc_signed_trace::wif_sc_signed_trace(const sc_dt::sc_signed& object_,
 					 const std::string& name_,
-					 const std::string& wif_name_) 
+					 const std::string& wif_name_)
 : wif_trace(name_, wif_name_), object(object_), old_value(object_.length())
 {
     old_value = object;
@@ -505,15 +515,21 @@ bool wif_sc_signed_trace::changed()
 
 void wif_sc_signed_trace::write(FILE* f)
 {
-    char buf[1000], *buf_ptr = buf;
+    static std::vector<char> buf(1024);
+    typedef std::vector<char>::size_type size_t;
 
-    int bitindex;
-    for(bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
-        *buf_ptr++ = "01"[(object)[bitindex]];
+    if ( buf.size() < static_cast<size_t>(object.length()) ) {
+        size_t sz = ( static_cast<size_t>(object.length()) + 4096 ) & (~static_cast<size_t>(4096-1));
+        std::vector<char>( sz ).swap( buf ); // resize without copying values
+    }
+    char *buf_ptr = &buf[0];
+
+    for(int bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
+        *buf_ptr++ = "01"[object[bitindex].to_bool()];
     }
     *buf_ptr = '\0';
 
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), &buf[0]);
     old_value = object;
 }
 
@@ -533,7 +549,7 @@ public:
     bool changed();
     void set_width();
 
-protected:    
+protected:
     const sc_dt::sc_uint_base& object;
     sc_dt::sc_uint_base old_value;
 };
@@ -560,10 +576,10 @@ void wif_sc_uint_base_trace::write(FILE* f)
 
     int bitindex;
     for(bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
-        *buf_ptr++ = "01"[(object)[bitindex]];
+        *buf_ptr++ = "01"[object[bitindex].to_bool()];
     }
     *buf_ptr = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -584,7 +600,7 @@ public:
     bool changed();
     void set_width();
 
-protected:    
+protected:
     const sc_dt::sc_int_base& object;
     sc_dt::sc_int_base old_value;
 };
@@ -592,7 +608,7 @@ protected:
 
 wif_sc_int_base_trace::wif_sc_int_base_trace(const sc_dt::sc_int_base& object_,
 					     const std::string& name_,
-					     const std::string& wif_name_) 
+					     const std::string& wif_name_)
 : wif_trace(name_, wif_name_), object(object_), old_value(object_.length())
 {
     old_value = object;
@@ -610,11 +626,11 @@ void wif_sc_int_base_trace::write(FILE* f)
 
     int bitindex;
     for(bitindex = object.length() - 1; bitindex >= 0; --bitindex) {
-        *buf_ptr++ = "01"[(object)[bitindex]];
+        *buf_ptr++ = "01"[object[bitindex].to_bool()];
     }
     *buf_ptr = '\0';
 
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -646,11 +662,9 @@ protected:
 wif_sc_fxval_trace::wif_sc_fxval_trace( const sc_dt::sc_fxval& object_,
 				        const std::string& name_,
 					const std::string& wif_name_ )
-: wif_trace( name_, wif_name_ ),
-  object( object_ )
+: wif_trace( name_, wif_name_ ), object( object_ ), old_value( object_ )
 {
     bit_width = 0;
-    old_value = object;
     wif_type = "real";
 }
 
@@ -686,15 +700,13 @@ protected:
 
 };
 
-wif_sc_fxval_fast_trace::wif_sc_fxval_fast_trace( 
+wif_sc_fxval_fast_trace::wif_sc_fxval_fast_trace(
                                 const sc_dt::sc_fxval_fast& object_,
 				const std::string& name_,
 				const std::string& wif_name_ )
-: wif_trace( name_, wif_name_ ),
-  object( object_ )
+: wif_trace(name_, wif_name_), object( object_ ), old_value( object_ )
 {
     bit_width = 0;
-    old_value = object;
     wif_type = "real";
 }
 
@@ -754,16 +766,22 @@ wif_sc_fxnum_trace::changed()
 void
 wif_sc_fxnum_trace::write( FILE* f )
 {
-    char buf[1000], *buf_ptr = buf;
+    static std::vector<char> buf(1024);
+    typedef std::vector<char>::size_type size_t;
 
-    int bitindex;
-    for( bitindex = object.wl() - 1; bitindex >= 0; -- bitindex )
+    if ( buf.size() < static_cast<size_t>(object.wl()) ) {
+        size_t sz = ( static_cast<size_t>(object.wl()) + 4096 ) & (~static_cast<size_t>(4096-1));
+        std::vector<char>( sz ).swap( buf ); // resize without copying values
+    }
+    char *buf_ptr = &buf[0];
+
+    for(int bitindex = object.wl() - 1; bitindex >= 0; --bitindex)
     {
-        *buf_ptr ++ = "01"[(object)[bitindex]];
+        *buf_ptr ++ = "01"[object[bitindex]];
     }
     *buf_ptr = '\0';
 
-    std::fprintf( f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf );
+    std::fprintf( f, "assign %s \"%s\" ;\n", wif_name.c_str(), &buf[0]);
     old_value = object;
 }
 
@@ -793,7 +811,7 @@ protected:
 
 };
 
-wif_sc_fxnum_fast_trace::wif_sc_fxnum_fast_trace( 
+wif_sc_fxnum_fast_trace::wif_sc_fxnum_fast_trace(
 				const sc_dt::sc_fxnum_fast& object_,
 				const std::string& name_,
 				const std::string& wif_name_ )
@@ -817,16 +835,22 @@ wif_sc_fxnum_fast_trace::changed()
 void
 wif_sc_fxnum_fast_trace::write( FILE* f )
 {
-    char buf[1000], *buf_ptr = buf;
+    static std::vector<char> buf(1024);
+    typedef std::vector<char>::size_type size_t;
 
-    int bitindex;
-    for( bitindex = object.wl() - 1; bitindex >= 0; -- bitindex )
+    if ( buf.size() < static_cast<size_t>(object.wl()) ) {
+      size_t sz = ( static_cast<size_t>(object.wl()) + 4096 ) & (~static_cast<size_t>(4096-1));
+        std::vector<char>( sz ).swap( buf ); // resize without copying values
+    }
+    char *buf_ptr = &buf[0];
+
+    for(int bitindex = object.wl() - 1; bitindex >= 0; --bitindex)
     {
-        *buf_ptr ++ = "01"[(object)[bitindex]];
+        *buf_ptr ++ = "01"[object[bitindex]];
     }
     *buf_ptr = '\0';
 
-    std::fprintf( f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf );
+    std::fprintf( f, "assign %s \"%s\" ;\n", wif_name.c_str(), &buf[0]);
     old_value = object;
 }
 
@@ -850,24 +874,22 @@ public:
 protected:
     const unsigned& object;
     unsigned old_value;
-    unsigned mask; 
+    unsigned mask;
 };
 
 
 wif_unsigned_int_trace::wif_unsigned_int_trace(const unsigned& object_,
 					   const std::string& name_,
 					   const std::string& wif_name_,
-					   int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					   int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(~0U)
 {
     bit_width = width_;
     if (bit_width < 32) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffffffff;
+        mask = ~(~0U << bit_width);
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -885,7 +907,7 @@ void wif_unsigned_int_trace::write(FILE* f)
 
     // Check for overflow
     if ((object & mask) != object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex] = '0';
         }
     }
@@ -897,7 +919,7 @@ void wif_unsigned_int_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -916,7 +938,7 @@ public:
 protected:
     const unsigned short& object;
     unsigned short old_value;
-    unsigned short mask; 
+    unsigned short mask;
 };
 
 
@@ -924,17 +946,14 @@ wif_unsigned_short_trace::wif_unsigned_short_trace(
 	const unsigned short& object_,
        const std::string& name_,
        const std::string& wif_name_,
-       int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+       int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_), mask(static_cast<unsigned short>(~0U))
 {
     bit_width = width_;
     if (bit_width < 16) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffff;
+        mask = static_cast<unsigned short>(~(~0U << bit_width));
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -952,7 +971,7 @@ void wif_unsigned_short_trace::write(FILE* f)
 
     // Check for overflow
     if ((object & mask) != object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
@@ -964,7 +983,7 @@ void wif_unsigned_short_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -982,24 +1001,21 @@ public:
 protected:
     const unsigned char& object;
     unsigned char old_value;
-    unsigned char mask; 
+    unsigned char mask;
 };
 
 
 wif_unsigned_char_trace::wif_unsigned_char_trace(const unsigned char& object_,
 					 const std::string& name_,
 					 const std::string& wif_name_,
-					 int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					 int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_), mask(static_cast<unsigned char>(~0U))
 {
     bit_width = width_;
     if (bit_width < 8) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xff;
+        mask = static_cast<unsigned char>(~(~0U << bit_width));
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1017,7 +1033,7 @@ void wif_unsigned_char_trace::write(FILE* f)
 
     // Check for overflow
     if ((object & mask) != object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
@@ -1029,7 +1045,7 @@ void wif_unsigned_char_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1047,24 +1063,22 @@ public:
 protected:
     const unsigned long& object;
     unsigned long old_value;
-    unsigned long mask; 
+    unsigned long mask;
 };
 
 
 wif_unsigned_long_trace::wif_unsigned_long_trace(const unsigned long& object_,
 					     const std::string& name_,
 					     const std::string& wif_name_,
-					     int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					     int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(~0UL)
 {
     bit_width = width_;
-    if (bit_width < 32) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffffffff;
+    if (bit_width < static_cast<int>(sizeof(unsigned long)*BITS_PER_BYTE)) {
+        mask = ~(~0UL << bit_width);
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1082,19 +1096,19 @@ void wif_unsigned_long_trace::write(FILE* f)
 
     // Check for overflow
     if ((object & mask) != object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
     else{
-        unsigned bit_mask = 1 << (bit_width-1);
+        unsigned long bit_mask = 1ul << (bit_width-1);
         for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex] = (object & bit_mask)? '1' : '0';
             bit_mask = bit_mask >> 1;
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1112,24 +1126,22 @@ public:
 protected:
     const int& object;
     int old_value;
-    unsigned mask; 
+    unsigned mask;
 };
 
 
 wif_signed_int_trace::wif_signed_int_trace(const signed& object_,
 					   const std::string& name_,
 					   const std::string& wif_name_,
-					   int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					   int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(~0U)
 {
     bit_width = width_;
     if (bit_width < 32) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffffffff;
+        mask = ~(~0U << bit_width);
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1146,8 +1158,8 @@ void wif_signed_int_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if (((unsigned) object & mask) != (unsigned) object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+    if ((static_cast<unsigned>(object) & mask) != static_cast<unsigned>(object)) {
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
@@ -1159,7 +1171,7 @@ void wif_signed_int_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1177,24 +1189,21 @@ public:
 protected:
     const short& object;
     short old_value;
-    unsigned short mask; 
+    unsigned short mask;
 };
 
 
 wif_signed_short_trace::wif_signed_short_trace(const short& object_,
 					   const std::string& name_,
 					   const std::string& wif_name_,
-					   int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					   int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_), mask(static_cast<unsigned short>(~0U))
 {
     bit_width = width_;
     if (bit_width < 16) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffff;
+        mask = static_cast<unsigned short>(~(~0U << bit_width));
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1211,8 +1220,8 @@ void wif_signed_short_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if (((unsigned short) object & mask) != (unsigned short) object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+    if ((static_cast<unsigned short>(object) & mask) != static_cast<unsigned short>(object)) {
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
@@ -1224,7 +1233,7 @@ void wif_signed_short_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1242,24 +1251,21 @@ public:
 protected:
     const char& object;
     char old_value;
-    unsigned char mask; 
+    unsigned char mask;
 };
 
 
 wif_signed_char_trace::wif_signed_char_trace(const char& object_,
 					     const std::string& name_,
 					     const std::string& wif_name_,
-					     int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					     int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_), mask(static_cast<unsigned char>(~0U))
 {
     bit_width = width_;
     if (bit_width < 8) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xff;
+        mask = static_cast<unsigned char>(~(~0U << bit_width));
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1276,8 +1282,8 @@ void wif_signed_char_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if (((unsigned char) object & mask) != (unsigned char) object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+    if ((static_cast<unsigned char>(object) & mask) != static_cast<unsigned char>(object)) {
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     }
@@ -1289,7 +1295,7 @@ void wif_signed_char_trace::write(FILE* f)
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1307,24 +1313,22 @@ public:
 protected:
     const long& object;
     long old_value;
-    unsigned long mask; 
+    unsigned long mask;
 };
 
 
 wif_signed_long_trace::wif_signed_long_trace(const long& object_,
 					     const std::string& name_,
 					     const std::string& wif_name_,
-					     int width_) 
-: wif_trace(name_, wif_name_), object(object_)
+					     int width_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  mask(~0UL)
 {
     bit_width = width_;
-    if (bit_width < 32) {
-        mask = ~(-1 << bit_width);
-    } else {
-        mask = 0xffffffff;
+    if (bit_width < static_cast<int>(sizeof(long)*BITS_PER_BYTE)) {
+        mask = ~(~0UL << bit_width);
     }
 
-    old_value = object;
     wif_type = "BIT";
 }
 
@@ -1341,19 +1345,19 @@ void wif_signed_long_trace::write(FILE* f)
     int bitindex;
 
     // Check for overflow
-    if (((unsigned long) object & mask) != (unsigned long) object) {
-        for (bitindex = 0; bitindex < bit_width; bitindex++){
+    if ((static_cast<unsigned long>(object) & mask) != static_cast<unsigned long>(object)) {
+        for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex]='0';
         }
     } else {
-        unsigned bit_mask = 1 << (bit_width-1);
+        unsigned long bit_mask = 1ul << (bit_width-1);
         for (bitindex = 0; bitindex < bit_width; bitindex++) {
             buf[bitindex] = (object & bit_mask)? '1' : '0';
             bit_mask = bit_mask >> 1;
         }
     }
     buf[bitindex] = '\0';
-    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf); 
+    std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(), buf);
     old_value = object;
 }
 
@@ -1368,7 +1372,7 @@ public:
     void write(FILE* f);
     bool changed();
 
-protected:    
+protected:
     const float& object;
     float old_value;
 };
@@ -1376,10 +1380,9 @@ protected:
 wif_float_trace::wif_float_trace(const float& object_,
 				 const std::string& name_,
 				 const std::string& wif_name_)
-: wif_trace(name_, wif_name_), object(object_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_)
 {
     bit_width = 0;
-    old_value = object;
     wif_type = "real";
 }
 
@@ -1404,7 +1407,7 @@ public:
     void write(FILE* f);
     bool changed();
 
-protected:    
+protected:
     const double& object;
     double old_value;
 };
@@ -1412,10 +1415,9 @@ protected:
 wif_double_trace::wif_double_trace(const double& object_,
 				   const std::string& name_,
 				   const std::string& wif_name_)
-: wif_trace(name_, wif_name_), object(object_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_)
 {
     bit_width = 0;
-    old_value = object;
     wif_type = "real";
 }
 
@@ -1447,7 +1449,7 @@ public:
 protected:
     const unsigned& object;
     unsigned old_value;
-    
+
     const char** literals;
     unsigned nliterals;
     std::string type_name;
@@ -1459,17 +1461,16 @@ protected:
 wif_enum_trace::wif_enum_trace(const unsigned& object_,
 			       const std::string& name_,
 			       const std::string& wif_name_,
-			       const char** enum_literals_) 
-: wif_trace(name_, wif_name_), object(object_), literals(enum_literals_)
+			       const char** enum_literals_)
+: wif_trace(name_, wif_name_), object(object_), old_value(object_),
+  literals(enum_literals_), nliterals(0), type_name(name_ + "__type__")
 {
     // find number of enumeration literals - counting loop
-    for (nliterals = 0; enum_literals_[nliterals]; nliterals++);
+    for (nliterals = 0; enum_literals_[nliterals]; nliterals++) continue;
 
     bit_width = 0;
-    old_value = object;
-    type_name = name_ + "__type__";
     wif_type = type_name.c_str();
-}       
+}
 
 void wif_enum_trace::print_variable_declaration_line(FILE* f)
 {
@@ -1492,21 +1493,22 @@ bool wif_enum_trace::changed()
 
 void wif_enum_trace::write(FILE* f)
 {
-    char buf[2000];
     static bool warning_issued = false;
+    const char* lit;
 
     if (object >= nliterals) { // Note unsigned value is always greater than 0
         if (!warning_issued) {
-	    std::sprintf(buf, "Tracing error: Value of enumerated type undefined");
-	    put_error_message(buf, false);
-	    warning_issued = true;
-	}
-	std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(),
-		"SC_WIF_UNDEF");
+            SC_REPORT_WARNING( SC_ID_TRACING_INVALID_ENUM_VALUE_
+                             , name.c_str() );
+            warning_issued = true;
+        }
+        lit = "SC_WIF_UNDEF";
     }
-    else 
-        std::fprintf(f, "assign %s \"%s\" ;\n", wif_name.c_str(),
-		literals[object]);
+    else
+    {
+        lit = literals[object];
+    }
+    std::fprintf( f, "assign %s \"%s\" ;\n", wif_name.c_str(), lit );
     old_value = object;
 }
 
@@ -1562,29 +1564,15 @@ typedef wif_T_trace<sc_dt::sc_lv_base> wif_sc_lv_trace;
 
 
 wif_trace_file::wif_trace_file(const char * name)
-{
-    std::string file_name = name ;
-    file_name += ".awif";
-    fp = fopen(file_name.c_str(), "w");
-    if (!fp) {
-        std::string msg = 
-		std::string("Cannot write trace file '") + file_name +
-	    "'";
-	::std::cerr << "FATAL: " << msg << "\n";
-        exit(1);
-    }
-    trace_delta_cycles = false; // make it the default
-    initialized = false;
-    wif_name_index = 0;
-
-    // default time step is the time resolution
-    timescale_unit = sc_get_time_resolution().to_seconds();
-
-    timescale_set_by_user = false;
-}
+  : sc_trace_file_base( name, "awif" )
+  , wif_name_index(0)
+  , previous_units_low(0)
+  , previous_units_high(0)
+  , traces()
+{}
 
 
-void wif_trace_file::initialize()
+void wif_trace_file::do_initialize()
 {
     char buf[2000];
 
@@ -1592,45 +1580,16 @@ void wif_trace_file::initialize()
     std::fprintf(fp, "init ;\n\n");
 
     //timescale:
-    if     (timescale_unit == 1e-15) std::sprintf(buf,"0");
-    else if(timescale_unit == 1e-14) std::sprintf(buf,"1");
-    else if(timescale_unit == 1e-13) std::sprintf(buf,"2");
-    else if(timescale_unit == 1e-12) std::sprintf(buf,"3");
-    else if(timescale_unit == 1e-11) std::sprintf(buf,"4");
-    else if(timescale_unit == 1e-10) std::sprintf(buf,"5");
-    else if(timescale_unit == 1e-9)  std::sprintf(buf,"6");
-    else if(timescale_unit == 1e-8)  std::sprintf(buf,"7");
-    else if(timescale_unit == 1e-7)  std::sprintf(buf,"8");
-    else if(timescale_unit == 1e-6)  std::sprintf(buf,"9");
-    else if(timescale_unit == 1e-5)  std::sprintf(buf,"10");
-    else if(timescale_unit == 1e-4)  std::sprintf(buf,"11");
-    else if(timescale_unit == 1e-3)  std::sprintf(buf,"12");
-    else if(timescale_unit == 1e-2)  std::sprintf(buf,"13");
-    else if(timescale_unit == 1e-1)  std::sprintf(buf,"14");
-    else if(timescale_unit == 1e0)   std::sprintf(buf,"15");
-    else if(timescale_unit == 1e1)   std::sprintf(buf,"16");
-    else if(timescale_unit == 1e2)   std::sprintf(buf,"17");
+    std::sprintf(buf,"%d", static_cast<int>(log10(static_cast<double>(trace_unit_fs))));
     std::fprintf(fp,"header  %s \"%s\" ;\n\n", buf, sc_version());
 
-    //date:
-    time_t long_time;
-    time(&long_time);
-    struct tm* p_tm;
-    p_tm = localtime(&long_time);
-    strftime(buf, 199, "%b %d, %Y       %H:%M:%S", p_tm);
-    std::fprintf(fp, "comment \"ASCII WIF file produced on date:  %s\" ;\n", buf);
- 
+    std::fprintf(fp, "comment \"ASCII WIF file produced on date:  %s\" ;\n"
+                , localtime_string().c_str());
+
     //version:
     std::fprintf(fp, "comment \"Created by %s\" ;\n", sc_version());
     //conversion info
     std::fprintf(fp, "comment \"Convert this file to binary WIF format using a2wif\" ;\n\n");
-
-
-    running_regression = ( getenv( "SYSTEMC_REGRESSION" ) != NULL );
-    // Don't print message if running regression
-    if( ! timescale_set_by_user && ! running_regression ) {
-	::std::cout << "WARNING: Default time step is used for WIF tracing." << ::std::endl;
-    }
 
     // Define the two types we need to represent bool and sc_logic
     std::fprintf(fp, "type scalar \"BIT\" enum '0', '1' ;\n");
@@ -1645,44 +1604,56 @@ void wif_trace_file::initialize()
         t->print_variable_declaration_line(fp);
     }
 
-    double inittime = sc_time_stamp().to_seconds();
-    previous_time = inittime/timescale_unit;
+    std::stringstream ss;
 
-    // Dump all values at initial time
-    std::sprintf(buf,
-            "All initial values are dumped below at time "
-            "%g sec = %g timescale units.",
-            inittime,
-            inittime/timescale_unit
-            );
-    write_comment(buf);
+    timestamp_in_trace_units(previous_units_high, previous_units_low);
 
-    double_to_special_int64(inittime/timescale_unit,
-			    &previous_time_units_high,
-			    &previous_time_units_low );
+    ss << "All initial values are dumped below at time "
+       << sc_time_stamp().to_seconds() <<" sec = ";
+    if(has_low_units())
+        ss << previous_units_high << std::setfill('0') << std::setw(low_units_len()) << previous_units_low;
+    else
+        ss << previous_units_high;
+    ss << " timescale units.";
+
+    write_comment(ss.str());
 
     for (i = 0; i < (int)traces.size(); i++) {
         wif_trace* t = traces[i];
         t->write(fp);
     }
+    std::fprintf(fp, "\n");
 }
+
+#if SC_TRACING_PHASE_CALLBACKS_
+void wif_trace_file::trace( sc_trace_file* ) const {
+    SC_REPORT_ERROR( sc_core::SC_ID_INTERNAL_ERROR_
+                   , "invalid call to wif_trace_file::trace(sc_trace_file*)" );
+}
+#endif // SC_TRACING_PHASE_CALLBACKS_
 
 // ----------------------------------------------------------------------------
 
+void wif_trace_file::trace(const sc_event&, const std::string& name) {
+    std::stringstream msg;
+    msg << "sc_events are not supported by WIF trace: " << name;
+    SC_REPORT_ERROR(SC_ID_TRACING_OBJECT_IGNORED_, msg.str().c_str() );
+}
+
+void wif_trace_file::trace(const sc_time&, const std::string& name) {
+    std::stringstream msg;
+    msg << "sc_time is not supported by WIF trace: " << name;
+    SC_REPORT_ERROR(SC_ID_TRACING_OBJECT_IGNORED_, msg.str().c_str() );
+}
+
 #define DEFN_TRACE_METHOD(tp)                                                 \
 void                                                                          \
-wif_trace_file::trace( const tp& object_, const std::string& name_ )     \
+wif_trace_file::trace( const tp& object_, const std::string& name_ )          \
 {                                                                             \
-    if( initialized ) {                                                       \
-        put_error_message(                                                \
-	    "No traces can be added once simulation has started.\n"           \
-            "To add traces, create a new wif trace file.", false );           \
-    }                                                                         \
-    std::string temp_wif_name;                                           \
-    create_wif_name( &temp_wif_name );                                        \
-    traces.push_back( new wif_ ## tp ## _trace( object_,                      \
-						name_,                        \
-						temp_wif_name ) );            \
+    if( add_trace_check(name_) )                                              \
+        traces.push_back( new wif_ ## tp ## _trace( object_,                  \
+                                                    name_,                    \
+                                                    obtain_name() ) );        \
 }
 
 DEFN_TRACE_METHOD(bool)
@@ -1692,18 +1663,12 @@ DEFN_TRACE_METHOD(double)
 #undef DEFN_TRACE_METHOD
 #define DEFN_TRACE_METHOD(tp)                                                 \
 void                                                                          \
-wif_trace_file::trace(const sc_dt::tp& object_, const std::string& name_)\
+wif_trace_file::trace(const sc_dt::tp& object_, const std::string& name_)     \
 {                                                                             \
-    if( initialized ) {                                                       \
-        put_error_message(                                                \
-	    "No traces can be added once simulation has started.\n"               \
-            "To add traces, create a new wif trace file.", false );           \
-    }                                                                         \
-    std::string temp_wif_name;                                           \
-    create_wif_name( &temp_wif_name );                                        \
-    traces.push_back( new wif_ ## tp ## _trace( object_,                      \
-						name_,                        \
-						temp_wif_name ) );            \
+    if( add_trace_check(name_) )                                              \
+        traces.push_back( new wif_ ## tp ## _trace( object_,                  \
+                                                    name_,                    \
+                                                    obtain_name() ) );        \
 }
 
 DEFN_TRACE_METHOD(sc_bit)
@@ -1724,40 +1689,28 @@ DEFN_TRACE_METHOD(sc_fxnum_fast)
 
 #define DEFN_TRACE_METHOD_SIGNED(tp)                                          \
 void                                                                          \
-wif_trace_file::trace( const tp&        object_,                              \
-                       const std::string& name_,                         \
-                       int              width_ )                              \
+wif_trace_file::trace( const tp&          object_,                            \
+                       const std::string& name_,                              \
+                       int                width_ )                            \
 {                                                                             \
-    if( initialized ) {                                                       \
-        put_error_message(                                                \
-	    "No traces can be added once simulation has started.\n"           \
-            "To add traces, create a new wif trace file.", false );           \
-    }                                                                         \
-    std::string temp_wif_name;                                           \
-    create_wif_name( &temp_wif_name );                                        \
-    traces.push_back( new wif_signed_ ## tp ## _trace( object_,               \
-						       name_,                 \
-						       temp_wif_name,         \
-                                                       width_ ) );            \
+    if( add_trace_check(name_) )                                              \
+        traces.push_back( new wif_signed_ ## tp ## _trace( object_,           \
+                                                           name_,             \
+                                                           obtain_name(),     \
+                                                           width_ ) );        \
 }
 
 #define DEFN_TRACE_METHOD_UNSIGNED(tp)                                        \
 void                                                                          \
 wif_trace_file::trace( const unsigned tp& object_,                            \
-                       const std::string&   name_,                       \
+                       const std::string& name_,                              \
                        int                width_ )                            \
 {                                                                             \
-    if( initialized ) {                                                       \
-        put_error_message(                                                \
-	    "No traces can be added once simulation has started.\n"           \
-            "To add traces, create a new wif trace file.", false );           \
-    }                                                                         \
-    std::string temp_wif_name;                                           \
-    create_wif_name( &temp_wif_name );                                        \
-    traces.push_back( new wif_unsigned_ ## tp ## _trace( object_,             \
-						         name_,               \
-						         temp_wif_name,       \
-                                                         width_ ) );          \
+    if( add_trace_check(name_) )                                              \
+        traces.push_back( new wif_unsigned_ ## tp ## _trace( object_,         \
+                                                             name_,           \
+                                                             obtain_name(),   \
+                                                             width_ ) );      \
 }
 
 DEFN_TRACE_METHOD_SIGNED(char)
@@ -1776,21 +1729,15 @@ DEFN_TRACE_METHOD_UNSIGNED(long)
 
 #define DEFN_TRACE_METHOD_LONG_LONG(tp)                                       \
 void                                                                          \
-wif_trace_file::trace( const sc_dt::tp& object_,                              \
-                       const std::string&   name_,                       \
+wif_trace_file::trace( const sc_dt::tp&   object_,                            \
+                       const std::string& name_,                              \
                        int                width_ )                            \
 {                                                                             \
-    if( initialized ) {                                                       \
-        put_error_message(                                                \
-	    "No traces can be added once simulation has started.\n"           \
-            "To add traces, create a new wif trace file.", false );           \
-    }                                                                         \
-    std::string temp_wif_name;                                           \
-    create_wif_name( &temp_wif_name );                                        \
-    traces.push_back( new wif_ ## tp ## _trace( object_,                      \
-						name_,                        \
-						temp_wif_name,                \
-                                                width_ ) );                   \
+    if( add_trace_check(name_) )                                              \
+        traces.push_back( new wif_ ## tp ## _trace( object_,                  \
+                                                    name_,                    \
+                                                    obtain_name(),            \
+                                                    width_ ) );               \
 }
 
 DEFN_TRACE_METHOD_LONG_LONG(int64)
@@ -1802,28 +1749,22 @@ wif_trace_file::trace( const unsigned& object_,
 		       const std::string& name_,
 		       const char** enum_literals_ )
 {
-    if( initialized ) {
-        put_error_message(
-	    "No traces can be added once simulation has started.\n"
-	    "To add traces, create a new wif trace file.", false );
-    }
-    std::string temp_wif_name;
-    create_wif_name( &temp_wif_name );
-    traces.push_back( new wif_enum_trace( object_,
-					  name_,
-					  temp_wif_name,
-					  enum_literals_ ) );
+    if( add_trace_check(name_) )
+        traces.push_back( new wif_enum_trace( object_,
+                                              name_,
+                                              obtain_name(),
+                                              enum_literals_ ) );
 }
 
 void
-wif_trace_file::trace( const sc_dt::sc_bv_base& object_, 
+wif_trace_file::trace( const sc_dt::sc_bv_base& object_,
     const std::string& name_ )
 {
    traceT( object_, name_, WIF_BIT );
 }
 
 void
-wif_trace_file::trace( const sc_dt::sc_lv_base& object_, 
+wif_trace_file::trace( const sc_dt::sc_lv_base& object_,
     const std::string& name_ )
 {
    traceT( object_, name_, WIF_MVL );
@@ -1833,106 +1774,115 @@ wif_trace_file::trace( const sc_dt::sc_lv_base& object_,
 void
 wif_trace_file::write_comment(const std::string& comment)
 {
+    if(!fp) open_fp();
     //no newline in comments allowed
     std::fprintf(fp, "comment \"%s\" ;\n", comment.c_str());
 }
 
 
 void
-wif_trace_file::delta_cycles(bool flag)
-{
-    trace_delta_cycles = flag;
-}
-
-void
 wif_trace_file::cycle(bool this_is_a_delta_cycle)
 {
-    unsigned now_units_high, now_units_low;
+    unit_type now_units_high, now_units_low;
 
     // Trace delta cycles only when enabled
-    if (!trace_delta_cycles && this_is_a_delta_cycle) return;
+    if (!delta_cycles() && this_is_a_delta_cycle) return;
+    // When delta cycles enabled, value changes happen only during delta cycles
+    if (delta_cycles() && !this_is_a_delta_cycle) return;
 
     // Check for initialization
-    if (!initialized) {
-        initialize();
-        initialized = true;
+    if( initialize() ) {
         return;
     };
 
-    // double now_units = sc_simulation_time() / timescale_unit;
-    double now_units = sc_time_stamp().to_seconds() / timescale_unit;
-    
-    double_to_special_int64(now_units, &now_units_high, &now_units_low );
+    timestamp_in_trace_units(now_units_high, now_units_low);
 
-    // Now do the real stuff
-    unsigned delta_units_high, delta_units_low;
-    double diff_time;
-    diff_time = now_units - previous_time;
-    double_to_special_int64(diff_time, &delta_units_high, &delta_units_low);
-    if (this_is_a_delta_cycle && (diff_time == 0.0))
-	delta_units_low++; // Increment time for delta cycle simulation
-    // Note that in the last statement above, we are assuming no more
-    // than 2^32 delta cycles - seems realistic
-    
+    unit_type delta_units_high, delta_units_low;
+    bool time_advanced = true;
+    if (now_units_low < previous_units_low) {
+        unit_type max_low_units = kernel_unit_fs / trace_unit_fs;
+        delta_units_low = max_low_units - previous_units_low + now_units_low;
+
+        if (now_units_high <= previous_units_high)
+            time_advanced = false;
+
+        delta_units_high = now_units_high - 1 - previous_units_high;
+    } else {
+        delta_units_low = now_units_low - previous_units_low;
+
+        if (now_units_high < previous_units_high || ((now_units_high == previous_units_high) && delta_units_low == 0) )
+            time_advanced = false;
+
+        delta_units_high = now_units_high - previous_units_high;
+    }
+
+    if (!time_advanced) {
+        std::stringstream ss;
+        ss <<"\n\tThis can occur when delta cycle tracing is activated."
+           <<"\n\tSome delta cycles at " << sc_time_stamp() << " are not shown in trace file."
+           <<"\n\tUse 'tracefile->set_time_unit(double, sc_time_unit);' to increase the time resolution.";
+        SC_REPORT_WARNING( SC_ID_TRACING_REVERSED_TIME_, ss.str().c_str() );
+        return;
+    }
+
     bool time_printed = false;
     wif_trace* const* const l_traces = &traces[0];
     for (int i = 0; i < (int)traces.size(); i++) {
         wif_trace* t = l_traces[i];
         if(t->changed()){
-            if(time_printed == false){
-                if(delta_units_high){
-                    std::fprintf(fp, "delta_time %u%09u ;\n", delta_units_high,
-			    delta_units_low);
-                }
-                else{ 
-                    std::fprintf(fp, "delta_time %u ;\n", delta_units_low);
-                }
+            if(time_printed == false) {
+
+                std::stringstream ss;
+
+                if(has_low_units())
+                    ss << "delta_time " << delta_units_high << std::setfill('0')
+                       << std::setw(low_units_len()) << delta_units_low << " ;\n";
+                else
+                    ss << "delta_time " << delta_units_high <<" ;\n";
+
+                std::fputs(ss.str().c_str(), fp);
+
                 time_printed = true;
             }
 
-	    // Write the variable
+            // Write the variable
             t->write(fp);
         }
     }
 
     if(time_printed) {
         std::fprintf(fp, "\n");     // Put another newline
-	// We update previous_time_units only when we print time because
-	// this field stores the previous time that was printed, not the
-	// previous time this function was called
-	previous_time_units_high = now_units_high;
-	previous_time_units_low = now_units_low;
-	previous_time = now_units;
+        // We update previous_time_units only when we print time because
+        // this field stores the previous time that was printed, not the
+        // previous time this function was called
+        previous_units_high = now_units_high;
+        previous_units_low = now_units_low;
     }
 }
 
-// Create a WIF name for a variable
+#if 0
 void
 wif_trace_file::create_wif_name(std::string* ptr_to_str)
 {
-    char buf[50];
-    std::sprintf(buf,"O%d", wif_name_index);
-    *ptr_to_str = buf; 
-    wif_name_index++;
+  obtain_name().swap(*ptr_to_str);
 }
+#endif
 
+// Create a WIF name for a variable
 std::string
-wif_trace_file::obtain_new_index()
+wif_trace_file::obtain_name()
 {
     char buf[32];
     std::sprintf( buf, "O%d", wif_name_index ++ );
-    return std::string( buf );
+    return buf;
 }
 
-// Cleanup and close trace file
 wif_trace_file::~wif_trace_file()
 {
-    int i;
-    for (i = 0; i < (int)traces.size(); i++) {
+    for( int i = 0; i < (int)traces.size(); i++ ) {
         wif_trace* t = traces[i];
         delete t;
     }
-    fclose(fp);
 }
 
 // Map sc_logic values to values understandable by WIF
@@ -1943,7 +1893,7 @@ map_sc_logic_state_to_wif_state(char in_char)
 
     switch(in_char){
         case 'U':
-        case 'X': 
+        case 'X':
         case 'W':
         case 'D':
             out_char = 'X';
@@ -1953,10 +1903,10 @@ map_sc_logic_state_to_wif_state(char in_char)
             out_char = '0';
             break;
         case  '1':
-        case  'H': 
+        case  'H':
             out_char = '1';
             break;
-        case  'Z': 
+        case  'Z':
             out_char = 'Z';
             break;
         default:
@@ -1965,36 +1915,20 @@ map_sc_logic_state_to_wif_state(char in_char)
     return out_char;
 }
 
-
-#if 0
-// no output should be done directly to ::std::cout, cerr, etc.
-void
-put_error_message(const char* msg, bool just_warning)
-{
-    if(just_warning){
-	::std::cout << "WIF Trace Warning:\n" << msg << "\n" << ::std::endl;
-    }
-    else{
-	::std::cout << "WIF Trace ERROR:\n" << msg << "\n" << ::std::endl;
-    }
-}
-#endif // 0
+// ----------------------------------------------------------------------------
 
 // Create the trace file
-sc_trace_file*
+SC_API sc_trace_file*
 sc_create_wif_trace_file(const char * name)
 {
-    sc_trace_file *tf;
-
-    tf = new wif_trace_file(name);
-    sc_get_curr_simcontext()->add_trace_file(tf);
+    sc_trace_file *tf = new wif_trace_file(name);
     return tf;
 }
 
-void
+SC_API void
 sc_close_wif_trace_file( sc_trace_file* tf )
 {
-    wif_trace_file* wif_tf = (wif_trace_file*)tf;
+    wif_trace_file* wif_tf = static_cast<wif_trace_file*>(tf);
     delete wif_tf;
 }
 

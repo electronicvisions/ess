@@ -1,5 +1,5 @@
-#ifndef BOOST_BIND_HPP_INCLUDED
-#define BOOST_BIND_HPP_INCLUDED
+#ifndef SC_BOOST_BIND_HPP_INCLUDED
+#define SC_BOOST_BIND_HPP_INCLUDED
 
 // MS compatible compilers support #pragma once
 
@@ -31,17 +31,17 @@
 // Borland-specific bug, visit_each() silently fails to produce code
 
 #if defined(__BORLANDC__)
-#  define BOOST_BIND_VISIT_EACH boost::visit_each
+#  define SC_BOOST_BIND_VISIT_EACH sc_boost::visit_each
 #else
-#  define BOOST_BIND_VISIT_EACH visit_each
+#  define SC_BOOST_BIND_VISIT_EACH visit_each
 #endif
 
-#ifdef BOOST_MSVC
+#ifdef SC_BOOST_MSVC
 # pragma warning(push)
 # pragma warning(disable: 4512) // assignment operator could not be generated
 #endif
 
-namespace boost
+namespace sc_boost
 {
 
 namespace _bi // implementation details
@@ -54,7 +54,7 @@ template<class R, class F> struct result_traits
     typedef R type;
 };
 
-#if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
+#if !defined(SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
 
 struct unspecified {};
 
@@ -128,14 +128,14 @@ template<class F> inline F & unwrap(reference_wrapper<F> const * f, int)
     return f->get();
 }
 
-#if !( defined(__MWERKS__) && BOOST_WORKAROUND(__MWERKS__, <= 0x3004) )
+#if !( defined(__MWERKS__) && SC_BOOST_WORKAROUND(__MWERKS__, <= 0x3004) )
 
 template<class R, class T> inline _mfi::dm<R, T> unwrap(R T::* * pm, int)
 {
     return _mfi::dm<R, T>(*pm);
 }
 
-#if !BOOST_WORKAROUND(__IBMCPP__, BOOST_TESTED_AT(600))
+#if !SC_BOOST_WORKAROUND(__IBMCPP__, SC_BOOST_TESTED_AT(600))
 // IBM/VisualAge 6.0 is not able to handle this overload.
 template<class R, class T> inline _mfi::dm<R, T> unwrap(R T::* const * pm, int)
 {
@@ -200,9 +200,9 @@ public:
 
     explicit list1(A1 a1): a1_(a1) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
 
     template<class T> T & operator[] ( _bi::value<T> & v ) const { return v.get(); }
 
@@ -236,7 +236,7 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
     }
 
     bool operator==(list1 const & rhs) const
@@ -255,11 +255,11 @@ public:
 
     list2(A1 a1, A2 a2): a1_(a1), a2_(a2) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -293,8 +293,8 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
     }
 
     bool operator==(list2 const & rhs) const
@@ -314,13 +314,13 @@ public:
 
     list3(A1 a1, A2 a2, A3 a3): a1_(a1), a2_(a2), a3_(a3) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -354,9 +354,9 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
     }
 
     bool operator==(list3 const & rhs) const
@@ -377,15 +377,15 @@ public:
 
     list4(A1 a1, A2 a2, A3 a3, A4 a4): a1_(a1), a2_(a2), a3_(a3), a4_(a4) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -419,10 +419,10 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
     }
 
     bool operator==(list4 const & rhs) const
@@ -446,17 +446,17 @@ public:
 
     list5(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5): a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
-    A5 operator[] (boost::arg<5>) const { return a5_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5>) const { return a5_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
-    A5 operator[] (boost::arg<5> (*) ()) const { return a5_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5> (*) ()) const { return a5_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -490,11 +490,11 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
-        BOOST_BIND_VISIT_EACH(v, a5_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a5_, 0);
     }
 
     bool operator==(list5 const & rhs) const
@@ -519,19 +519,19 @@ public:
 
     list6(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6): a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5), a6_(a6) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
-    A5 operator[] (boost::arg<5>) const { return a5_; }
-    A6 operator[] (boost::arg<6>) const { return a6_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5>) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6>) const { return a6_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
-    A5 operator[] (boost::arg<5> (*) ()) const { return a5_; }
-    A6 operator[] (boost::arg<6> (*) ()) const { return a6_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5> (*) ()) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6> (*) ()) const { return a6_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -565,12 +565,12 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
-        BOOST_BIND_VISIT_EACH(v, a5_, 0);
-        BOOST_BIND_VISIT_EACH(v, a6_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a5_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a6_, 0);
     }
 
     bool operator==(list6 const & rhs) const
@@ -596,21 +596,21 @@ public:
 
     list7(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7): a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5), a6_(a6), a7_(a7) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
-    A5 operator[] (boost::arg<5>) const { return a5_; }
-    A6 operator[] (boost::arg<6>) const { return a6_; }
-    A7 operator[] (boost::arg<7>) const { return a7_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5>) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6>) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7>) const { return a7_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
-    A5 operator[] (boost::arg<5> (*) ()) const { return a5_; }
-    A6 operator[] (boost::arg<6> (*) ()) const { return a6_; }
-    A7 operator[] (boost::arg<7> (*) ()) const { return a7_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5> (*) ()) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6> (*) ()) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7> (*) ()) const { return a7_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -644,13 +644,13 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
-        BOOST_BIND_VISIT_EACH(v, a5_, 0);
-        BOOST_BIND_VISIT_EACH(v, a6_, 0);
-        BOOST_BIND_VISIT_EACH(v, a7_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a5_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a6_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a7_, 0);
     }
 
     bool operator==(list7 const & rhs) const
@@ -678,23 +678,23 @@ public:
 
     list8(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8): a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5), a6_(a6), a7_(a7), a8_(a8) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
-    A5 operator[] (boost::arg<5>) const { return a5_; }
-    A6 operator[] (boost::arg<6>) const { return a6_; }
-    A7 operator[] (boost::arg<7>) const { return a7_; }
-    A8 operator[] (boost::arg<8>) const { return a8_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5>) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6>) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7>) const { return a7_; }
+    A8 operator[] (sc_boost::arg<8>) const { return a8_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
-    A5 operator[] (boost::arg<5> (*) ()) const { return a5_; }
-    A6 operator[] (boost::arg<6> (*) ()) const { return a6_; }
-    A7 operator[] (boost::arg<7> (*) ()) const { return a7_; }
-    A8 operator[] (boost::arg<8> (*) ()) const { return a8_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5> (*) ()) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6> (*) ()) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7> (*) ()) const { return a7_; }
+    A8 operator[] (sc_boost::arg<8> (*) ()) const { return a8_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -728,14 +728,14 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
-        BOOST_BIND_VISIT_EACH(v, a5_, 0);
-        BOOST_BIND_VISIT_EACH(v, a6_, 0);
-        BOOST_BIND_VISIT_EACH(v, a7_, 0);
-        BOOST_BIND_VISIT_EACH(v, a8_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a5_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a6_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a7_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a8_, 0);
     }
 
     bool operator==(list8 const & rhs) const
@@ -764,25 +764,25 @@ public:
 
     list9(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9): a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5), a6_(a6), a7_(a7), a8_(a8), a9_(a9) {}
 
-    A1 operator[] (boost::arg<1>) const { return a1_; }
-    A2 operator[] (boost::arg<2>) const { return a2_; }
-    A3 operator[] (boost::arg<3>) const { return a3_; }
-    A4 operator[] (boost::arg<4>) const { return a4_; }
-    A5 operator[] (boost::arg<5>) const { return a5_; }
-    A6 operator[] (boost::arg<6>) const { return a6_; }
-    A7 operator[] (boost::arg<7>) const { return a7_; }
-    A8 operator[] (boost::arg<8>) const { return a8_; }
-    A9 operator[] (boost::arg<9>) const { return a9_; }
+    A1 operator[] (sc_boost::arg<1>) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2>) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3>) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4>) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5>) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6>) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7>) const { return a7_; }
+    A8 operator[] (sc_boost::arg<8>) const { return a8_; }
+    A9 operator[] (sc_boost::arg<9>) const { return a9_; }
 
-    A1 operator[] (boost::arg<1> (*) ()) const { return a1_; }
-    A2 operator[] (boost::arg<2> (*) ()) const { return a2_; }
-    A3 operator[] (boost::arg<3> (*) ()) const { return a3_; }
-    A4 operator[] (boost::arg<4> (*) ()) const { return a4_; }
-    A5 operator[] (boost::arg<5> (*) ()) const { return a5_; }
-    A6 operator[] (boost::arg<6> (*) ()) const { return a6_; }
-    A7 operator[] (boost::arg<7> (*) ()) const { return a7_; }
-    A8 operator[] (boost::arg<8> (*) ()) const { return a8_; }
-    A9 operator[] (boost::arg<9> (*) ()) const { return a9_; }
+    A1 operator[] (sc_boost::arg<1> (*) ()) const { return a1_; }
+    A2 operator[] (sc_boost::arg<2> (*) ()) const { return a2_; }
+    A3 operator[] (sc_boost::arg<3> (*) ()) const { return a3_; }
+    A4 operator[] (sc_boost::arg<4> (*) ()) const { return a4_; }
+    A5 operator[] (sc_boost::arg<5> (*) ()) const { return a5_; }
+    A6 operator[] (sc_boost::arg<6> (*) ()) const { return a6_; }
+    A7 operator[] (sc_boost::arg<7> (*) ()) const { return a7_; }
+    A8 operator[] (sc_boost::arg<8> (*) ()) const { return a8_; }
+    A9 operator[] (sc_boost::arg<9> (*) ()) const { return a9_; }
 
     template<class T> T & operator[] (_bi::value<T> & v) const { return v.get(); }
 
@@ -816,15 +816,15 @@ public:
 
     template<class V> void accept(V & v) const
     {
-        BOOST_BIND_VISIT_EACH(v, a1_, 0);
-        BOOST_BIND_VISIT_EACH(v, a2_, 0);
-        BOOST_BIND_VISIT_EACH(v, a3_, 0);
-        BOOST_BIND_VISIT_EACH(v, a4_, 0);
-        BOOST_BIND_VISIT_EACH(v, a5_, 0);
-        BOOST_BIND_VISIT_EACH(v, a6_, 0);
-        BOOST_BIND_VISIT_EACH(v, a7_, 0);
-        BOOST_BIND_VISIT_EACH(v, a8_, 0);
-        BOOST_BIND_VISIT_EACH(v, a9_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a1_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a2_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a3_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a4_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a5_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a6_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a7_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a8_, 0);
+        SC_BOOST_BIND_VISIT_EACH(v, a9_, 0);
     }
 
     bool operator==(list9 const & rhs) const
@@ -850,7 +850,7 @@ private:
 
 // bind_t
 
-#ifndef BOOST_NO_VOID_RETURNS
+#ifndef SC_BOOST_NO_VOID_RETURNS
 
 template<class R, class F, class L> class bind_t
 {
@@ -860,9 +860,9 @@ public:
 
     bind_t(F f, L const & l): f_(f), l_(l) {}
 
-#define BOOST_BIND_RETURN return
+#define SC_BOOST_BIND_RETURN return
 #include <sysc/packages/boost/bind/bind_template.hpp>
-#undef BOOST_BIND_RETURN
+#undef SC_BOOST_BIND_RETURN
 
 };
 
@@ -879,9 +879,9 @@ public:
 
     implementation(F f, L const & l): f_(f), l_(l) {}
 
-#define BOOST_BIND_RETURN return
+#define SC_BOOST_BIND_RETURN return
 #include <sysc/packages/boost/bind/bind_template.hpp>
-#undef BOOST_BIND_RETURN
+#undef SC_BOOST_BIND_RETURN
 
 };
 
@@ -902,19 +902,19 @@ public:
 
     implementation(F f, L const & l): f_(f), l_(l) {}
 
-#define BOOST_BIND_RETURN
+#define SC_BOOST_BIND_RETURN
 #include <sysc/packages/boost/bind/bind_template.hpp>
-#undef BOOST_BIND_RETURN
+#undef SC_BOOST_BIND_RETURN
 
 };
 
 };
 
-template<class R2, class F, class L> class bind_t: public bind_t_generator<R2>::BOOST_NESTED_TEMPLATE implementation<F, L>
+template<class R2, class F, class L> class bind_t: public bind_t_generator<R2>::SC_BOOST_NESTED_TEMPLATE implementation<F, L>
 {
 public:
 
-    bind_t(F f, L const & l): bind_t_generator<R2>::BOOST_NESTED_TEMPLATE implementation<F, L>(f, l) {}
+    bind_t(F f, L const & l): bind_t_generator<R2>::SC_BOOST_NESTED_TEMPLATE implementation<F, L>(f, l) {}
 
 };
 
@@ -922,11 +922,11 @@ public:
 
 // function_equal
 
-#ifndef BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
+#ifndef SC_BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
 
 // put overloads in _bi, rely on ADL
 
-# ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+# ifndef SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING
 
 template<class R, class F, class L> bool function_equal( bind_t<R, F, L> const & a, bind_t<R, F, L> const & b )
 {
@@ -940,15 +940,15 @@ template<class R, class F, class L> bool function_equal_impl( bind_t<R, F, L> co
     return a.compare(b);
 }
 
-# endif // #ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+# endif // #ifndef SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING
 
-#else // BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
+#else // SC_BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
 
 // put overloads in boost
 
 } // namespace _bi
 
-# ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+# ifndef SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING
 
 template<class R, class F, class L> bool function_equal( _bi::bind_t<R, F, L> const & a, _bi::bind_t<R, F, L> const & b )
 {
@@ -962,16 +962,16 @@ template<class R, class F, class L> bool function_equal_impl( _bi::bind_t<R, F, 
     return a.compare(b);
 }
 
-# endif // #ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+# endif // #ifndef SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING
 
 namespace _bi
 {
 
-#endif // BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
+#endif // SC_BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
 
 // add_value
 
-#if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) || (__SUNPRO_CC >= 0x530)
+#if !defined(SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) || (defined(__SUNPRO_CC) && (__SUNPRO_CC >= 0x530))
 
 template<class T> struct add_value
 {
@@ -990,12 +990,12 @@ template<class T> struct add_value< reference_wrapper<T> >
 
 template<int I> struct add_value< arg<I> >
 {
-    typedef boost::arg<I> type;
+    typedef sc_boost::arg<I> type;
 };
 
 template<int I> struct add_value< arg<I> (*) () >
 {
-    typedef boost::arg<I> (*type) ();
+    typedef sc_boost::arg<I> (*type) ();
 };
 
 template<class R, class F, class L> struct add_value< bind_t<R, F, L> >
@@ -1151,7 +1151,7 @@ template<class R, class F, class L>
 
 // relational operators
 
-#define BOOST_BIND_OPERATOR( op, name ) \
+#define SC_BOOST_BIND_OPERATOR( op, name ) \
 \
 struct name \
 { \
@@ -1167,22 +1167,22 @@ template<class R, class F, class L, class A2> \
     return bind_t<bool, name, list_type> ( name(), list_type(f, a2) ); \
 }
 
-BOOST_BIND_OPERATOR( ==, equal )
-BOOST_BIND_OPERATOR( !=, not_equal )
+SC_BOOST_BIND_OPERATOR( ==, equal )
+SC_BOOST_BIND_OPERATOR( !=, not_equal )
 
-BOOST_BIND_OPERATOR( <, less )
-BOOST_BIND_OPERATOR( <=, less_equal )
+SC_BOOST_BIND_OPERATOR( <, less )
+SC_BOOST_BIND_OPERATOR( <=, less_equal )
 
-BOOST_BIND_OPERATOR( >, greater )
-BOOST_BIND_OPERATOR( >=, greater_equal )
+SC_BOOST_BIND_OPERATOR( >, greater )
+SC_BOOST_BIND_OPERATOR( >=, greater_equal )
 
-#undef BOOST_BIND_OPERATOR
+#undef SC_BOOST_BIND_OPERATOR
 
-#if defined(__GNUC__) && BOOST_WORKAROUND(__GNUC__, < 3)
+#if defined(__GNUC__) && SC_BOOST_WORKAROUND(__GNUC__, < 3)
 
 // resolve ambiguity with rel_ops
 
-#define BOOST_BIND_OPERATOR( op, name ) \
+#define SC_BOOST_BIND_OPERATOR( op, name ) \
 \
 template<class R, class F, class L> \
     bind_t< bool, name, list2< bind_t<R, F, L>, bind_t<R, F, L> > > \
@@ -1192,10 +1192,10 @@ template<class R, class F, class L> \
     return bind_t<bool, name, list_type> ( name(), list_type(f, g) ); \
 }
 
-BOOST_BIND_OPERATOR( !=, not_equal )
-BOOST_BIND_OPERATOR( <=, less_equal )
-BOOST_BIND_OPERATOR( >, greater )
-BOOST_BIND_OPERATOR( >=, greater_equal )
+SC_BOOST_BIND_OPERATOR( !=, not_equal )
+SC_BOOST_BIND_OPERATOR( <=, less_equal )
+SC_BOOST_BIND_OPERATOR( >, greater )
+SC_BOOST_BIND_OPERATOR( >=, greater_equal )
 
 #endif
 
@@ -1205,7 +1205,7 @@ BOOST_BIND_OPERATOR( >=, greater_equal )
 
 template<class V, class T> void visit_each(V & v, _bi::value<T> const & t, int)
 {
-    BOOST_BIND_VISIT_EACH(v, t.get(), 0);
+    SC_BOOST_BIND_VISIT_EACH(v, t.get(), 0);
 }
 
 template<class V, class R, class F, class L> void visit_each(V & v, _bi::bind_t<R, F, L> const & t, int)
@@ -1215,15 +1215,15 @@ template<class V, class R, class F, class L> void visit_each(V & v, _bi::bind_t<
 
 // bind
 
-#ifndef BOOST_BIND
-#define BOOST_BIND bind
+#ifndef SC_BOOST_BIND
+#define SC_BOOST_BIND bind
 #endif
 
 // generic function objects
 
 template<class R, class F>
     _bi::bind_t<R, F, _bi::list0>
-    BOOST_BIND(F f)
+    SC_BOOST_BIND(F f)
 {
     typedef _bi::list0 list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type());
@@ -1231,7 +1231,7 @@ template<class R, class F>
 
 template<class R, class F, class A1>
     _bi::bind_t<R, F, typename _bi::list_av_1<A1>::type>
-    BOOST_BIND(F f, A1 a1)
+    SC_BOOST_BIND(F f, A1 a1)
 {
     typedef typename _bi::list_av_1<A1>::type list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type(a1));
@@ -1239,7 +1239,7 @@ template<class R, class F, class A1>
 
 template<class R, class F, class A1, class A2>
     _bi::bind_t<R, F, typename _bi::list_av_2<A1, A2>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2)
 {
     typedef typename _bi::list_av_2<A1, A2>::type list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type(a1, a2));
@@ -1247,7 +1247,7 @@ template<class R, class F, class A1, class A2>
 
 template<class R, class F, class A1, class A2, class A3>
     _bi::bind_t<R, F, typename _bi::list_av_3<A1, A2, A3>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3)
 {
     typedef typename _bi::list_av_3<A1, A2, A3>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3));
@@ -1255,7 +1255,7 @@ template<class R, class F, class A1, class A2, class A3>
 
 template<class R, class F, class A1, class A2, class A3, class A4>
     _bi::bind_t<R, F, typename _bi::list_av_4<A1, A2, A3, A4>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4)
 {
     typedef typename _bi::list_av_4<A1, A2, A3, A4>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4));
@@ -1263,7 +1263,7 @@ template<class R, class F, class A1, class A2, class A3, class A4>
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5>
     _bi::bind_t<R, F, typename _bi::list_av_5<A1, A2, A3, A4, A5>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
 {
     typedef typename _bi::list_av_5<A1, A2, A3, A4, A5>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5));
@@ -1271,7 +1271,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5>
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6>
     _bi::bind_t<R, F, typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
 {
     typedef typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6));
@@ -1279,7 +1279,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
     _bi::bind_t<R, F, typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
 {
     typedef typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7));
@@ -1287,7 +1287,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
     _bi::bind_t<R, F, typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
 {
     typedef typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8));
@@ -1295,7 +1295,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
     _bi::bind_t<R, F, typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
 {
     typedef typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8, a9));
@@ -1305,7 +1305,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F>
     _bi::bind_t<R, F, _bi::list0>
-    BOOST_BIND(boost::type<R>, F f)
+    SC_BOOST_BIND(sc_boost::type<R>, F f)
 {
     typedef _bi::list0 list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type());
@@ -1313,7 +1313,7 @@ template<class R, class F>
 
 template<class R, class F, class A1>
     _bi::bind_t<R, F, typename _bi::list_av_1<A1>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1)
 {
     typedef typename _bi::list_av_1<A1>::type list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type(a1));
@@ -1321,7 +1321,7 @@ template<class R, class F, class A1>
 
 template<class R, class F, class A1, class A2>
     _bi::bind_t<R, F, typename _bi::list_av_2<A1, A2>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2)
 {
     typedef typename _bi::list_av_2<A1, A2>::type list_type;
     return _bi::bind_t<R, F, list_type> (f, list_type(a1, a2));
@@ -1329,7 +1329,7 @@ template<class R, class F, class A1, class A2>
 
 template<class R, class F, class A1, class A2, class A3>
     _bi::bind_t<R, F, typename _bi::list_av_3<A1, A2, A3>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3)
 {
     typedef typename _bi::list_av_3<A1, A2, A3>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3));
@@ -1337,7 +1337,7 @@ template<class R, class F, class A1, class A2, class A3>
 
 template<class R, class F, class A1, class A2, class A3, class A4>
     _bi::bind_t<R, F, typename _bi::list_av_4<A1, A2, A3, A4>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4)
 {
     typedef typename _bi::list_av_4<A1, A2, A3, A4>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4));
@@ -1345,7 +1345,7 @@ template<class R, class F, class A1, class A2, class A3, class A4>
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5>
     _bi::bind_t<R, F, typename _bi::list_av_5<A1, A2, A3, A4, A5>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
 {
     typedef typename _bi::list_av_5<A1, A2, A3, A4, A5>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5));
@@ -1353,7 +1353,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5>
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6>
     _bi::bind_t<R, F, typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
 {
     typedef typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6));
@@ -1361,7 +1361,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
     _bi::bind_t<R, F, typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
 {
     typedef typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7));
@@ -1369,7 +1369,7 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
     _bi::bind_t<R, F, typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
 {
     typedef typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8));
@@ -1377,19 +1377,19 @@ template<class R, class F, class A1, class A2, class A3, class A4, class A5, cla
 
 template<class R, class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
     _bi::bind_t<R, F, typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type>
-    BOOST_BIND(boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
+    SC_BOOST_BIND(sc_boost::type<R>, F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
 {
     typedef typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type list_type;
     return _bi::bind_t<R, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8, a9));
 }
 
-#if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
+#if !defined(SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
 
 // adaptable function objects
 
 template<class F>
     _bi::bind_t<_bi::unspecified, F, _bi::list0>
-    BOOST_BIND(F f)
+    SC_BOOST_BIND(F f)
 {
     typedef _bi::list0 list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type> (f, list_type());
@@ -1397,7 +1397,7 @@ template<class F>
 
 template<class F, class A1>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_1<A1>::type>
-    BOOST_BIND(F f, A1 a1)
+    SC_BOOST_BIND(F f, A1 a1)
 {
     typedef typename _bi::list_av_1<A1>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type> (f, list_type(a1));
@@ -1405,7 +1405,7 @@ template<class F, class A1>
 
 template<class F, class A1, class A2>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_2<A1, A2>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2)
 {
     typedef typename _bi::list_av_2<A1, A2>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type> (f, list_type(a1, a2));
@@ -1413,7 +1413,7 @@ template<class F, class A1, class A2>
 
 template<class F, class A1, class A2, class A3>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_3<A1, A2, A3>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3)
 {
     typedef typename _bi::list_av_3<A1, A2, A3>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3));
@@ -1421,7 +1421,7 @@ template<class F, class A1, class A2, class A3>
 
 template<class F, class A1, class A2, class A3, class A4>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_4<A1, A2, A3, A4>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4)
 {
     typedef typename _bi::list_av_4<A1, A2, A3, A4>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4));
@@ -1429,7 +1429,7 @@ template<class F, class A1, class A2, class A3, class A4>
 
 template<class F, class A1, class A2, class A3, class A4, class A5>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_5<A1, A2, A3, A4, A5>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
 {
     typedef typename _bi::list_av_5<A1, A2, A3, A4, A5>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4, a5));
@@ -1437,7 +1437,7 @@ template<class F, class A1, class A2, class A3, class A4, class A5>
 
 template<class F, class A1, class A2, class A3, class A4, class A5, class A6>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
 {
     typedef typename _bi::list_av_6<A1, A2, A3, A4, A5, A6>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6));
@@ -1445,7 +1445,7 @@ template<class F, class A1, class A2, class A3, class A4, class A5, class A6>
 
 template<class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
 {
     typedef typename _bi::list_av_7<A1, A2, A3, A4, A5, A6, A7>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7));
@@ -1453,7 +1453,7 @@ template<class F, class A1, class A2, class A3, class A4, class A5, class A6, cl
 
 template<class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
 {
     typedef typename _bi::list_av_8<A1, A2, A3, A4, A5, A6, A7, A8>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8));
@@ -1461,103 +1461,103 @@ template<class F, class A1, class A2, class A3, class A4, class A5, class A6, cl
 
 template<class F, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
     _bi::bind_t<_bi::unspecified, F, typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type>
-    BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
+    SC_BOOST_BIND(F f, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
 {
     typedef typename _bi::list_av_9<A1, A2, A3, A4, A5, A6, A7, A8, A9>::type list_type;
     return _bi::bind_t<_bi::unspecified, F, list_type>(f, list_type(a1, a2, a3, a4, a5, a6, a7, a8, a9));
 }
 
-#endif // !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
+#endif // !defined(SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(SC_BOOST_NO_FUNCTION_TEMPLATE_ORDERING)
 
 // function pointers
 
-#define BOOST_BIND_CC
-#define BOOST_BIND_ST
+#define SC_BOOST_BIND_CC
+#define SC_BOOST_BIND_ST
 
 #include <sysc/packages/boost/bind/bind_cc.hpp>
 
-#undef BOOST_BIND_CC
-#undef BOOST_BIND_ST
+#undef SC_BOOST_BIND_CC
+#undef SC_BOOST_BIND_ST
 
-#ifdef BOOST_BIND_ENABLE_STDCALL
+#ifdef SC_BOOST_BIND_ENABLE_STDCALL
 
-#define BOOST_BIND_CC __stdcall
-#define BOOST_BIND_ST
+#define SC_BOOST_BIND_CC __stdcall
+#define SC_BOOST_BIND_ST
 
 #include <sysc/packages/boost/bind/bind_cc.hpp>
 
-#undef BOOST_BIND_CC
-#undef BOOST_BIND_ST
+#undef SC_BOOST_BIND_CC
+#undef SC_BOOST_BIND_ST
 
 #endif
 
-#ifdef BOOST_BIND_ENABLE_FASTCALL
+#ifdef SC_BOOST_BIND_ENABLE_FASTCALL
 
-#define BOOST_BIND_CC __fastcall
-#define BOOST_BIND_ST
+#define SC_BOOST_BIND_CC __fastcall
+#define SC_BOOST_BIND_ST
 
 #include <sysc/packages/boost/bind/bind_cc.hpp>
 
-#undef BOOST_BIND_CC
-#undef BOOST_BIND_ST
+#undef SC_BOOST_BIND_CC
+#undef SC_BOOST_BIND_ST
 
 #endif
 
-#ifdef BOOST_BIND_ENABLE_PASCAL
+#ifdef SC_BOOST_BIND_ENABLE_PASCAL
 
-#define BOOST_BIND_ST pascal
-#define BOOST_BIND_CC
+#define SC_BOOST_BIND_ST pascal
+#define SC_BOOST_BIND_CC
 
 #include <sysc/packages/boost/bind/bind_cc.hpp>
 
-#undef BOOST_BIND_ST
-#undef BOOST_BIND_CC
+#undef SC_BOOST_BIND_ST
+#undef SC_BOOST_BIND_CC
 
 #endif
 
 // member function pointers
 
-#define BOOST_BIND_MF_NAME(X) X
-#define BOOST_BIND_MF_CC
+#define SC_BOOST_BIND_MF_NAME(X) X
+#define SC_BOOST_BIND_MF_CC
 
 #include <sysc/packages/boost/bind/bind_mf_cc.hpp>
 
-#undef BOOST_BIND_MF_NAME
-#undef BOOST_BIND_MF_CC
+#undef SC_BOOST_BIND_MF_NAME
+#undef SC_BOOST_BIND_MF_CC
 
-#ifdef BOOST_MEM_FN_ENABLE_CDECL
+#ifdef SC_BOOST_MEM_FN_ENABLE_CDECL
 
-#define BOOST_BIND_MF_NAME(X) X##_cdecl
-#define BOOST_BIND_MF_CC __cdecl
+#define SC_BOOST_BIND_MF_NAME(X) X##_cdecl
+#define SC_BOOST_BIND_MF_CC __cdecl
 
 #include <sysc/packages/boost/bind/bind_mf_cc.hpp>
 
-#undef BOOST_BIND_MF_NAME
-#undef BOOST_BIND_MF_CC
+#undef SC_BOOST_BIND_MF_NAME
+#undef SC_BOOST_BIND_MF_CC
 
 #endif
 
-#ifdef BOOST_MEM_FN_ENABLE_STDCALL
+#ifdef SC_BOOST_MEM_FN_ENABLE_STDCALL
 
-#define BOOST_BIND_MF_NAME(X) X##_stdcall
-#define BOOST_BIND_MF_CC __stdcall
+#define SC_BOOST_BIND_MF_NAME(X) X##_stdcall
+#define SC_BOOST_BIND_MF_CC __stdcall
 
 #include <sysc/packages/boost/bind/bind_mf_cc.hpp>
 
-#undef BOOST_BIND_MF_NAME
-#undef BOOST_BIND_MF_CC
+#undef SC_BOOST_BIND_MF_NAME
+#undef SC_BOOST_BIND_MF_CC
 
 #endif
 
-#ifdef BOOST_MEM_FN_ENABLE_FASTCALL
+#ifdef SC_BOOST_MEM_FN_ENABLE_FASTCALL
 
-#define BOOST_BIND_MF_NAME(X) X##_fastcall
-#define BOOST_BIND_MF_CC __fastcall
+#define SC_BOOST_BIND_MF_NAME(X) X##_fastcall
+#define SC_BOOST_BIND_MF_CC __fastcall
 
 #include <sysc/packages/boost/bind/bind_mf_cc.hpp>
 
-#undef BOOST_BIND_MF_NAME
-#undef BOOST_BIND_MF_CC
+#undef SC_BOOST_BIND_MF_NAME
+#undef SC_BOOST_BIND_MF_CC
 
 #endif
 
@@ -1589,7 +1589,7 @@ template<> struct add_cref<void>
 
 template<class R, class T, class A1>
 _bi::bind_t< typename _bi::add_cref<R>::type, _mfi::dm<R, T>, typename _bi::list_av_1<A1>::type >
-    BOOST_BIND(R T::*f, A1 a1)
+    SC_BOOST_BIND(R T::*f, A1 a1)
 {
     typedef _mfi::dm<R, T> F;
     typedef typename _bi::list_av_1<A1>::type list_type;
@@ -1600,7 +1600,7 @@ _bi::bind_t< typename _bi::add_cref<R>::type, _mfi::dm<R, T>, typename _bi::list
 
 template<class R, class T, class A1>
 _bi::bind_t< R const &, _mfi::dm<R, T>, typename _bi::list_av_1<A1>::type >
-    BOOST_BIND(R T::*f, A1 a1)
+    SC_BOOST_BIND(R T::*f, A1 a1)
 {
     typedef _mfi::dm<R, T> F;
     typedef typename _bi::list_av_1<A1>::type list_type;
@@ -1613,24 +1613,24 @@ _bi::bind_t< R const &, _mfi::dm<R, T>, typename _bi::list_av_1<A1>::type >
 
 template<class R, class T, class A1>
 _bi::bind_t< R, _mfi::dm<R, T>, typename _bi::list_av_1<A1>::type >
-    BOOST_BIND(R T::*f, A1 a1)
+    SC_BOOST_BIND(R T::*f, A1 a1)
 {
     typedef _mfi::dm<R, T> F;
     typedef typename _bi::list_av_1<A1>::type list_type;
     return _bi::bind_t<R, F, list_type>( F(f), list_type(a1) );
 }
 
-} // namespace boost
+} // sc_namespace sc_boost
 
-#ifndef BOOST_BIND_NO_PLACEHOLDERS
+#ifndef SC_BOOST_BIND_NO_PLACEHOLDERS
 
 # include <sysc/packages/boost/bind/placeholders.hpp>
 
 #endif
 
-#ifdef BOOST_MSVC
+#ifdef SC_BOOST_MSVC
 # pragma warning(default: 4512) // assignment operator could not be generated
 # pragma warning(pop)
 #endif
 
-#endif // #ifndef BOOST_BIND_HPP_INCLUDED
+#endif // #ifndef SC_BOOST_BIND_HPP_INCLUDED

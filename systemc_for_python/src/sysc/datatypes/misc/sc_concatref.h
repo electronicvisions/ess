@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -41,8 +43,31 @@
  *****************************************************************************/
 
 // $Log: sc_concatref.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.6  2011/08/24 22:05:48  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.5  2009/11/17 19:58:15  acg
+//  Andy Goodrich: fix of shift rhs possibilities to include "int".
+//
+// Revision 1.4  2009/02/28 00:26:29  acg
+//  Andy Goodrich: bug fixes.
+//
+// Revision 1.3  2008/04/29 20:23:55  acg
+//  Andy Goodrich: fixed the code that assigns the value of a string to
+//  an sc_concatref instance.
+//
+// Revision 1.2  2008/02/14 20:57:26  acg
+//  Andy Goodrich: added casts to ~0 instances to keep MSVC compiler happy.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
+//
+// Revision 1.4  2006/10/23 19:36:59  acg
+//  Andy Goodrich: changed casts for operations on concatenation values to
+//  mirror those of sc_unsigned. For instance, an sc_unsigned minus a value
+//  returns an sc_signed result, whereas an sc_concatref minus a value was
+//  returning an sc_unsigned result. Now both sc_unsigned and sc_concatref
+//  minus a value return an sc_signed result.
 //
 // Revision 1.3  2006/01/13 18:54:01  acg
 // Andy Goodrich: added $Log command so that CVS comments are reproduced in
@@ -55,7 +80,6 @@
 #include "sysc/kernel/sc_object.h"
 #include "sysc/datatypes/misc/sc_value_base.h"
 #include "sysc/utils/sc_temporary.h"
-#include "sysc/utils/sc_string.h"
 #include "sysc/datatypes/bit/sc_bv.h"
 #include "sysc/datatypes/bit/sc_lv.h"
 #include "sysc/datatypes/int/sc_int_base.h"
@@ -63,12 +87,23 @@
 #include "sysc/datatypes/int/sc_signed.h"
 #include "sysc/datatypes/int/sc_unsigned.h"
 
+namespace sc_dt {
+
+// classes defined in this module
+class sc_concatref;
+class sc_concat_bool;
+
+} // namespace sc_dt
+
 namespace sc_core {
-    extern sc_byte_heap sc_temp_heap; // Temporary storage.
+extern sc_byte_heap SC_API sc_temp_heap; // Temporary storage.
+
+// explicit template instantiations
+SC_API_TEMPLATE_DECL_ sc_vpool<sc_dt::sc_concatref>;
+SC_API_TEMPLATE_DECL_ sc_vpool<sc_dt::sc_concat_bool>;
 } // namespace sc_core
 
-namespace sc_dt
-{
+namespace sc_dt {
 
 // ----------------------------------------------------------------------------
 //  CLASS TEMPLATE : sc_concatref
@@ -76,7 +111,7 @@ namespace sc_dt
 //  Proxy class for sized bit concatenation.
 // ----------------------------------------------------------------------------
 
-class sc_concatref : public sc_generic_base<sc_concatref>, public sc_value_base
+class SC_API sc_concatref : public sc_generic_base<sc_concatref>, public sc_value_base
 {
 public:
     friend class sc_core::sc_vpool<sc_concatref>;
@@ -199,13 +234,13 @@ public:
             result = m_right_p->concat_get_uint64();
             if ( m_len_r < 64 )
             {
-                mask = ~0;
+                mask = (uint64)~0;
                 result = (m_left_p->concat_get_uint64() << m_len_r) | 
                             (result & ~(mask << m_len_r));
             }
             if ( m_len < 64 )
             {
-                mask = ~0;
+                mask = (uint64)~0;
                 result = result & ~(mask << m_len);
             }
             return result;
@@ -218,10 +253,15 @@ public:
             bool           right_non_zero;
 
             result_p->nbits = result_p->num_bits(m_len);
-            result_p->ndigits = (result_p->nbits+BITS_PER_DIGIT-1) / 
-                BITS_PER_DIGIT;
+	    result_p->ndigits = DIV_CEIL(result_p->nbits);
             result_p->digit = (sc_digit*)sc_core::sc_temp_heap.allocate( 
                 sizeof(sc_digit)*result_p->ndigits );
+#if defined(_MSC_VER)
+            // workaround spurious initialisation issue on MS Visual C++
+            memset( result_p->digit, 0, sizeof(sc_digit)*result_p->ndigits );
+#else
+            result_p->digit[result_p->ndigits-1] = 0;
+#endif
             right_non_zero = m_right_p->concat_get_data( result_p->digit, 0 );
             left_non_zero = m_left_p->concat_get_data(result_p->digit, m_len_r); 
             if ( left_non_zero || right_non_zero ) 
@@ -350,7 +390,7 @@ public:
 
     const sc_concatref& operator = ( const char* v_p )
     {
-        sc_unsigned v(strlen(v_p));
+        sc_unsigned v(m_len);
         v = v_p;
         m_right_p->concat_set(v, 0);
         m_left_p->concat_set(v, m_len_r);
@@ -426,7 +466,8 @@ protected:
 
 private:
     sc_concatref(const sc_concatref&);
-    sc_concatref() { }
+    sc_concatref() : m_left_p(0), m_right_p(0), m_len(0), m_len_r(0), m_flags()
+      {}
 };
 
 
@@ -499,6 +540,12 @@ inline const sc_unsigned operator << (
 }
 
 inline const sc_unsigned operator << ( 
+    const sc_concatref& target, int shift )
+{
+    return target.value() << shift;
+}
+
+inline const sc_unsigned operator << ( 
     const sc_concatref& target, unsigned int shift )
 {
     return target.value() << (int)shift;
@@ -523,6 +570,12 @@ inline const sc_unsigned operator >> (
     const sc_concatref& target, unsigned long shift )
 {
     return target.value() >> (int)shift;
+}
+
+inline const sc_unsigned operator >> ( 
+    const sc_concatref& target, int shift )
+{
+    return target.value() >> shift;
 }
 
 inline const sc_unsigned operator >> ( 
@@ -563,13 +616,19 @@ operator >> ( ::std::istream& is, sc_concatref& a )
 //  Proxy class for read-only boolean values in concatenations.
 // ----------------------------------------------------------------------------
 
-class sc_concat_bool : public sc_value_base
+class SC_API sc_concat_bool : public sc_value_base
 {
   protected:
     static sc_core::sc_vpool<sc_concat_bool> m_pool;  // Temporaries pool.
     bool                                     m_value; // Value for this obj.
 
   public:
+
+    // constructor:
+    
+    sc_concat_bool()
+    : sc_value_base(), m_value()
+    {}
 
     // destructor:
 

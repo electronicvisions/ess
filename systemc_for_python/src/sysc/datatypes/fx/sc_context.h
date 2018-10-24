@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -34,8 +36,15 @@
  *****************************************************************************/
 
 // $Log: sc_context.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.2  2011/08/24 22:05:43  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
+//
+// Revision 1.5  2006/05/26 20:36:52  acg
+//  Andy Goodrich: added a using for sc_core::default_ptr_hash_fn to keep HP
+//  aCC happy.
 //
 // Revision 1.4  2006/03/21 00:00:31  acg
 //   Andy Goodrich: changed name of sc_get_current_process_base() to be
@@ -50,15 +59,17 @@
 #define SC_CONTEXT_H
 
 
+#include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/datatypes/fx/sc_fx_ids.h"
 #include "sysc/kernel/sc_simcontext.h"
 #include "sysc/utils/sc_hash.h"
+
 
 namespace sc_core {
 	class sc_process_b;
 }
 
-using sc_core::default_ptr_hash_fn;
+using sc_core::default_ptr_hash_fn; // To keep HP aCC happy.
 
 namespace sc_dt
 {
@@ -75,7 +86,7 @@ template <class T> class sc_context;
 //  Empty class that is used for its type only.
 // ----------------------------------------------------------------------------
 
-class sc_without_context {};
+class SC_API sc_without_context {};
 
 
 // ----------------------------------------------------------------------------
@@ -99,12 +110,11 @@ public:
     const T*& value_ptr();
 
 private:
-
     static sc_global<T>* m_instance;
 
-    sc_core::sc_phash<const sc_core::sc_process_b*,const T*> m_map;
-    const sc_core::sc_process_b*                             m_proc;
-    const T*                                                    m_value_ptr;
+    sc_core::sc_phash<void*,const T*> m_map;
+    void*                             m_proc; // context (current process or NULL)
+    const T*                          m_value_ptr;
 
 };
 
@@ -131,6 +141,7 @@ enum sc_context_begin
 template <class T>
 class sc_context
 {
+    // disabled
     sc_context( const sc_context<T>& );
     void* operator new( std::size_t );
 
@@ -146,6 +157,7 @@ public:
     const T& value() const;
 
 private:
+    sc_context& operator=(const sc_context&) /* = delete */;
 
     const T   m_value;
     const T*& m_def_value_ptr;
@@ -164,13 +176,13 @@ private:
 template <class T>
 sc_global<T>* sc_global<T>::m_instance = 0;
 
-
 template <class T>
 inline
 sc_global<T>::sc_global()
-: m_proc( 
-	reinterpret_cast<const sc_core::sc_process_b*>( -1 ) ), 
-	m_value_ptr( 0 )
+  : m_map()
+  // use &m_instance as unique "non-process" key (NULL denotes 'sc_main' context)
+  , m_proc( &m_instance )
+  , m_value_ptr( 0 )
 {}
 
 
@@ -179,7 +191,7 @@ inline
 void
 sc_global<T>::update()
 {
-    const sc_core::sc_process_b* p = sc_core::sc_get_current_process_b();
+    void* p = sc_core::sc_get_current_process_b();
     if( p != m_proc )
     {
         const T* vp = m_map[p];
@@ -225,34 +237,12 @@ sc_global<T>::value_ptr()
 
 template <class T>
 inline
-sc_context<T>::sc_context( const sc_context<T>& )
-: m_value(),
-  m_def_value_ptr( sc_global<T>::instance()->value_ptr() ),
-  m_old_value_ptr( 0 )
-{
-    // this constructor should never be called
-    SC_REPORT_FATAL( sc_core::SC_ID_INTERNAL_ERROR_, "should never be called" );
-}
-
-template <class T>
-inline
-void*
-sc_context<T>::operator new( std::size_t )
-{
-    // this method should never be called
-    SC_REPORT_FATAL( sc_core::SC_ID_INTERNAL_ERROR_, "should never be called" );
-    return (void*)0;
-}
-
-
-template <class T>
-inline
-sc_context<T>::sc_context( const T& value_, sc_context_begin begin )
+sc_context<T>::sc_context( const T& value_, sc_context_begin begin_ )
 : m_value( value_ ),
   m_def_value_ptr( sc_global<T>::instance()->value_ptr() ),
   m_old_value_ptr( 0 )
 {
-    if( begin == SC_NOW )
+    if( begin_ == SC_NOW )
     {
 	m_old_value_ptr = m_def_value_ptr;
 	m_def_value_ptr = &m_value;

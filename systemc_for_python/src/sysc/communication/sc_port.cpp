@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,58 +23,12 @@
 
   Original Author: Martin Janssen, Synopsys, Inc., 2001-05-21
 
+ CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date: Andy Goodrich, Forte Design Systems
-                               Bishnupriya Bhattacharya, Cadence Design Systems,
-                               25 August, 2003
-  Description of Modification: phase callbacks
-
-      Name, Affiliation, Date: Andy Goodrich, Forte Design Systems
-	  						   12 December, 2005
-  Description of Modification: multiport binding policy changes
-    
- *****************************************************************************/
-
-
-// $Log: sc_port.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:35  acg
-// SystemC 2.2
-//
-// Revision 1.9  2006/02/02 20:43:09  acg
-//  Andy Goodrich: Added an existence linked list to sc_event_finder so that
-//  the dynamically allocated instances can be freed after port binding
-//  completes. This replaces the individual deletions in ~sc_bind_ef, as these
-//  caused an exception if an sc_event_finder instance was used more than
-//  once, due to a double freeing of the instance.
-//
-// Revision 1.7  2006/01/26 21:00:50  acg
-//  Andy Goodrich: conversion to use sc_event::notify(SC_ZERO_TIME) instead of
-//  sc_event::notify_delayed()
-//
-// Revision 1.6  2006/01/25 00:31:11  acg
-//  Andy Goodrich: Changed over to use a standard message id of
-//  SC_ID_IEEE_1666_DEPRECATION for all deprecation messages.
-//
-// Revision 1.5  2006/01/24 20:46:31  acg
-// Andy Goodrich: changes to eliminate use of deprecated features. For instance,
-// using notify(SC_ZERO_TIME) in place of notify_delayed().
-//
-// Revision 1.4  2006/01/13 20:41:59  acg
-// Andy Goodrich: Changes to add port registration to the things that are
-// checked when SC_NO_WRITE_CHECK is not defined.
-//
-// Revision 1.3  2006/01/13 18:47:42  acg
-// Added $Log command so that CVS comments are reproduced in the source.
-//
 
 #include "sysc/kernel/sc_simcontext.h"
 #include "sysc/kernel/sc_module.h"
+#include "sysc/kernel/sc_object_int.h"
 #include "sysc/kernel/sc_method_process.h"
 #include "sysc/kernel/sc_thread_process.h"
 #include "sysc/communication/sc_communication_ids.h"
@@ -80,6 +36,8 @@
 #include "sysc/communication/sc_event_finder.h"
 #include "sysc/communication/sc_port.h"
 #include "sysc/communication/sc_signal_ifs.h"
+
+#include <sstream>
 
 namespace sc_core {
 
@@ -191,10 +149,13 @@ struct sc_bind_info
 sc_bind_info::sc_bind_info( int max_size_, sc_port_policy policy_ )
 : m_max_size( max_size_ ),
   m_policy( policy_ ),
+  vec(),
   has_parent( false ),
   last_add( -1 ),
   is_leaf( true ),
-  complete( false )
+  complete( false ),
+  thread_vec(),
+  method_vec()
 {}
 
 
@@ -211,7 +172,7 @@ sc_bind_info::~sc_bind_info()
 int
 sc_bind_info::max_size() const
 {
-    return m_max_size ? m_max_size : vec.size();
+    return m_max_size ? m_max_size : (int) vec.size();
 }
 
 sc_port_policy 
@@ -250,19 +211,26 @@ void sc_port_base::add_static_event(
     process_p->add_static_event( event );
 }
 
+// return number of interfaces that will be bound, or are bound:
+
+int sc_port_base::bind_count()
+{
+    if ( m_bind_info )
+	return m_bind_info->size();
+    else 
+	return interface_count();
+}
 
 // error reporting
 
 void
 sc_port_base::report_error( const char* id, const char* add_msg ) const
 {
-    char msg[BUFSIZ];
-    if( add_msg != 0 ) {
-	std::sprintf( msg, "%s: port '%s' (%s)", add_msg, name(), kind() );
-    } else {
-	std::sprintf( msg, "port '%s' (%s)", name(), kind() );
-    }
-    SC_REPORT_ERROR( id, msg );
+    std::stringstream msg;
+    if (add_msg != 0)
+        msg << add_msg << ": ";
+    msg << "port '" << name() << "' (" << kind() << ")";
+    SC_REPORT_ERROR( id, msg.str().c_str() );
 }
 
 
@@ -272,18 +240,20 @@ sc_port_base::sc_port_base(
     int max_size_, sc_port_policy policy 
 ) : 
     sc_object( sc_gen_unique_name( "port" ) ),
-    m_bind_info( new sc_bind_info( max_size_, policy ) )
+    m_bind_info(NULL)
 {
     simcontext()->get_port_registry()->insert( this );
+    m_bind_info = new sc_bind_info( max_size_, policy );
 }
 
 sc_port_base::sc_port_base( 
     const char* name_, int max_size_, sc_port_policy policy 
 ) : 
     sc_object( name_ ),
-    m_bind_info( new sc_bind_info( max_size_, policy ) )
+    m_bind_info(NULL)
 {
     simcontext()->get_port_registry()->insert( this );
+    m_bind_info = new sc_bind_info( max_size_, policy );
 }
 
 
@@ -292,9 +262,7 @@ sc_port_base::sc_port_base(
 sc_port_base::~sc_port_base()
 {
     simcontext()->get_port_registry()->remove( this );
-    if( m_bind_info != 0 ) {
-	delete m_bind_info;
-    }
+    delete m_bind_info;
 }
 
 
@@ -304,8 +272,9 @@ void
 sc_port_base::bind( sc_interface& interface_ )
 {
     if( m_bind_info == 0 ) {
-	// cannot bind an interface after elaboration
-	report_error( SC_ID_BIND_IF_TO_PORT_, "simulation running" );
+        // cannot bind an interface after elaboration
+        report_error( SC_ID_BIND_IF_TO_PORT_, "simulation running" );
+        return;
     }
 
     m_bind_info->vec.push_back( new sc_bind_elem( &interface_ ) );
@@ -324,20 +293,23 @@ void
 sc_port_base::bind( this_type& parent_ )
 {
     if( m_bind_info == 0 ) {
-	// cannot bind a parent port after elaboration
-	report_error( SC_ID_BIND_PORT_TO_PORT_, "simulation running" );
+        // cannot bind a parent port after elaboration
+        report_error( SC_ID_BIND_PORT_TO_PORT_, "simulation running" );
+        return;
     }
 
     if( &parent_ == this ) {
-	report_error( SC_ID_BIND_PORT_TO_PORT_, "same port" );
+        report_error( SC_ID_BIND_PORT_TO_PORT_, "same port" );
+        return;
     }
 
     // check if parent port is already bound to this port
 #if 0
     for( int i = m_bind_info->size() - 1; i >= 0; -- i ) {
-	if( &parent_ == m_bind_info->vec[i]->parent ) {
-	    report_error( SC_ID_BIND_PORT_TO_PORT_, "already bound" );
-	}
+        if( &parent_ == m_bind_info->vec[i]->parent ) {
+            report_error( SC_ID_BIND_PORT_TO_PORT_, "already bound" );
+            return;
+        }
     }
 #endif // 
 
@@ -346,7 +318,7 @@ sc_port_base::bind( this_type& parent_ )
     parent_.m_bind_info->is_leaf = false;
 }
 
-// called by sc_port_registry::construction_done (null by default)
+// called by construction_done (null by default)
 
 void sc_port_base::before_end_of_elaboration() 
 {}
@@ -374,10 +346,11 @@ int
 sc_port_base::pbind( sc_interface& interface_ )
 {
     if( m_bind_info == 0 ) {
-	// cannot bind an interface after elaboration
-	report_error( SC_ID_BIND_IF_TO_PORT_, "simulation running" );
+        // cannot bind an interface after elaboration
+        report_error( SC_ID_BIND_IF_TO_PORT_, "simulation running" );
+        return -1;
     }
-    
+
     if( m_bind_info->size() != 0 ) {
 	// first interface already bound
 	return 1;
@@ -390,10 +363,11 @@ int
 sc_port_base::pbind( sc_port_base& parent_ )
 {
     if( m_bind_info == 0 ) {
-	// cannot bind a parent port after elaboration
-	report_error( SC_ID_BIND_PORT_TO_PORT_, "simulation running" );
+        // cannot bind a parent port after elaboration
+        report_error( SC_ID_BIND_PORT_TO_PORT_, "simulation running" );
+        return -1;
     }
-    
+
     if( m_bind_info->size() != 0 ) {
 	// first interface already bound
 	return 1;
@@ -409,7 +383,7 @@ void
 sc_port_base::make_sensitive( sc_thread_handle handle_,
 			      sc_event_finder* event_finder_ ) const
 {
-    assert( m_bind_info != 0 );
+    sc_assert( m_bind_info != 0 );
     m_bind_info->thread_vec.push_back( 
 	new sc_bind_ef( (sc_process_b*)handle_, event_finder_ ) );
 }
@@ -418,7 +392,7 @@ void
 sc_port_base::make_sensitive( sc_method_handle handle_,
 			      sc_event_finder* event_finder_ ) const
 {
-    assert( m_bind_info != 0 );
+    sc_assert( m_bind_info != 0 );
     m_bind_info->method_vec.push_back( 
 	new sc_bind_ef( (sc_process_b*)handle_, event_finder_ ) );
 }
@@ -479,11 +453,9 @@ sc_port_base::insert_parent( int i )
 void
 sc_port_base::complete_binding()
 {
-    char msg_buffer[128]; // For error message construction.
-
     // IF BINDING HAS ALREADY BEEN COMPLETED IGNORE THIS CALL:
 
-    assert( m_bind_info != 0 );
+    sc_assert( m_bind_info != 0 );
     if( m_bind_info->complete ) {
         return;
     }
@@ -546,22 +518,27 @@ sc_port_base::complete_binding()
 
     if ( actual_binds > m_bind_info->max_size() )
     {
-	sprintf(msg_buffer, "%d binds exceeds maximum of %d allowed",
-	    actual_binds, m_bind_info->max_size() );
-	report_error( SC_ID_COMPLETE_BINDING_, msg_buffer );
+        std::stringstream msg;
+        msg << actual_binds << " binds exceeds maximum of "
+            << m_bind_info->max_size() << " allowed";
+        report_error( SC_ID_COMPLETE_BINDING_, msg.str().c_str() );
+        // may continue, if suppressed
     }
     switch ( m_bind_info->policy() )
     {
       case SC_ONE_OR_MORE_BOUND:
         if ( actual_binds < 1 ) {
             report_error( SC_ID_COMPLETE_BINDING_, "port not bound" );
+            // may continue, if suppressed
         }
         break;
       case SC_ALL_BOUND:
         if ( actual_binds < m_bind_info->max_size() || actual_binds < 1 ) {
-	    sprintf(msg_buffer, "%d actual binds is less than required %d",
-	        actual_binds, m_bind_info->max_size() ); 
-            report_error( SC_ID_COMPLETE_BINDING_, msg_buffer );
+            std::stringstream msg;
+            msg << actual_binds << " actual binds is less than required "
+                << m_bind_info->max_size();
+            report_error( SC_ID_COMPLETE_BINDING_, msg.str().c_str() );
+            // may continue, if suppressed
         }
         break;
       default:  // SC_ZERO_OR_MORE_BOUND:
@@ -585,31 +562,40 @@ sc_port_base::complete_binding()
 
     m_bind_info->complete = true;
 }
+
 void
 sc_port_base::construction_done()
 {
+    sc_module* parent = static_cast<sc_module*>( get_parent_object() );
+    sc_object::hierarchy_scope scope( parent );
     before_end_of_elaboration();
 }
 
 void
 sc_port_base::elaboration_done()
 {
-    assert( m_bind_info != 0 && m_bind_info->complete );
+    sc_assert( m_bind_info != 0 && m_bind_info->complete );
     delete m_bind_info;
     m_bind_info = 0;
 
+    sc_module* parent = static_cast<sc_module*>( get_parent_object() );
+    sc_object::hierarchy_scope scope( parent );
     end_of_elaboration();
 }
 
 void
 sc_port_base::start_simulation()
 {
+    sc_module* parent = static_cast<sc_module*>( get_parent_object() );
+    sc_object::hierarchy_scope scope( parent );
     start_of_simulation();
 }
 
 void
 sc_port_base::simulation_done()
 {
+    sc_module* parent = static_cast<sc_module*>( get_parent_object() );
+    sc_object::hierarchy_scope scope( parent );
     end_of_simulation();
 }
 
@@ -625,22 +611,30 @@ void
 sc_port_registry::insert( sc_port_base* port_ )
 {
     if( sc_is_running() ) {
-	port_->report_error( SC_ID_INSERT_PORT_, "simulation running" );
+        port_->report_error( SC_ID_INSERT_PORT_, "simulation running" );
+        return;
+    }
+
+    if( m_simc->elaboration_done()  ) {
+       port_->report_error( SC_ID_INSERT_PORT_, "elaboration done" );
+        return;
     }
 
 #if defined(DEBUG_SYSTEMC)
     // check if port_ is already inserted
     for( int i = size() - 1; i >= 0; -- i ) {
-	if( port_ == m_port_vec[i] ) {
-	    port_->report_error( SC_ID_INSERT_PORT_, "port already inserted" );
-	}
+        if( port_ == m_port_vec[i] ) {
+            port_->report_error( SC_ID_INSERT_PORT_, "port already inserted" );
+            return;
+        }
     }
 #endif
 
     // append the port to the current module's vector of ports
     sc_module* curr_module = m_simc->hierarchy_curr();
     if( curr_module == 0 ) {
-	port_->report_error( SC_ID_PORT_OUTSIDE_MODULE_ );
+        port_->report_error( SC_ID_PORT_OUTSIDE_MODULE_ );
+        return;
     }
     curr_module->append_port( port_ );
 
@@ -658,19 +652,22 @@ sc_port_registry::remove( sc_port_base* port_ )
 	}
     }
     if( i == -1 ) {
-	port_->report_error( SC_ID_REMOVE_PORT_, "port not registered" );
+        port_->report_error( SC_ID_REMOVE_PORT_, "port not registered" );
+        return;
     }
 
     // remove
-    m_port_vec[i] = m_port_vec[size() - 1];
-    m_port_vec.resize(size()-1);
+    m_port_vec[i] = m_port_vec.back();
+    m_port_vec.pop_back();
 }
 
 
 // constructor
 
 sc_port_registry::sc_port_registry( sc_simcontext& simc_ )
-: m_simc( &simc_ )
+: m_construction_done(0),
+  m_port_vec(),
+  m_simc( &simc_ )
 {
 }
 
@@ -683,12 +680,19 @@ sc_port_registry::~sc_port_registry()
 
 // called when construction is done
 
-void
+bool
 sc_port_registry::construction_done()
 {
-    for( int i = size() - 1; i >= 0; -- i ) {
+    if( size() == m_construction_done )
+        // nothing has been updated
+        return true;
+
+    for( int i = size()-1; i >= m_construction_done; --i ) {
         m_port_vec[i]->construction_done();
     }
+
+    m_construction_done = size();
+    return false;
 }
 
 // called when when elaboration is done
@@ -737,7 +741,7 @@ sc_port_registry::simulation_done()
 // This is a static member function.
 
 void
-sc_port_registry::replace_port( sc_port_registry* registry )
+sc_port_registry::replace_port( sc_port_registry* /* registry */ )
 {
 }
 
@@ -754,5 +758,92 @@ void sc_warn_port_constructor()
 }
 
 } // namespace sc_core
+
+
+/*****************************************************************************
+
+  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
+  changes you are making here.
+
+      Name, Affiliation, Date: Andy Goodrich, Forte Design Systems
+                               Bishnupriya Bhattacharya, Cadence Design Systems,
+                               25 August, 2003
+  Description of Modification: phase callbacks
+
+      Name, Affiliation, Date: Andy Goodrich, Forte Design Systems
+	  						   12 December, 2005
+  Description of Modification: multiport binding policy changes
+    
+ *****************************************************************************/
+
+
+// $Log: sc_port.cpp,v $
+// Revision 1.8  2011/08/24 22:05:36  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.7  2011/08/15 16:43:24  acg
+//  Torsten Maehne: changes to remove unused argument warnings.
+//
+// Revision 1.6  2011/08/07 19:08:01  acg
+//  Andy Goodrich: moved logs to end of file so line number synching works
+//  better between versions.
+//
+// Revision 1.5  2011/08/07 18:53:09  acg
+//  Philipp A. Hartmann: add virtual instances of the bind function for
+//  base classes to eliminate warning messages for clang platforms.
+//
+// Revision 1.4  2011/05/09 04:07:37  acg
+//  Philipp A. Hartmann:
+//    (1) Restore hierarchy in all phase callbacks.
+//    (2) Ensure calls to before_end_of_elaboration.
+//
+// Revision 1.3  2011/02/18 20:23:45  acg
+//  Andy Goodrich: Copyright update.
+//
+// Revision 1.2  2011/02/14 17:50:16  acg
+//  Andy Goodrich: testing for sc_port and sc_export instantiations during
+//  end of elaboration and issuing appropriate error messages.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
+//
+// Revision 1.11  2006/08/29 23:34:59  acg
+//  Andy Goodrich: added bind_count() method to allow users to determine which
+//  ports are connected in before_end_of_elaboration().
+//
+// Revision 1.10  2006/05/08 17:52:47  acg
+//  Andy Goodrich:
+//    (1) added David Long's forward declarations for friend functions,
+//        methods, and operators to keep the Microsoft compiler happy.
+//    (2) Added delta_count() method to sc_prim_channel for use by
+//        sc_signal so that the friend declaration in sc_simcontext.h
+// 	   can be for a non-templated class (i.e., sc_prim_channel.)
+//
+// Revision 1.9  2006/02/02 20:43:09  acg
+//  Andy Goodrich: Added an existence linked list to sc_event_finder so that
+//  the dynamically allocated instances can be freed after port binding
+//  completes. This replaces the individual deletions in ~sc_bind_ef, as these
+//  caused an exception if an sc_event_finder instance was used more than
+//  once, due to a double freeing of the instance.
+//
+// Revision 1.7  2006/01/26 21:00:50  acg
+//  Andy Goodrich: conversion to use sc_event::notify(SC_ZERO_TIME) instead of
+//  sc_event::notify_delayed()
+//
+// Revision 1.6  2006/01/25 00:31:11  acg
+//  Andy Goodrich: Changed over to use a standard message id of
+//  SC_ID_IEEE_1666_DEPRECATION for all deprecation messages.
+//
+// Revision 1.5  2006/01/24 20:46:31  acg
+// Andy Goodrich: changes to eliminate use of deprecated features. For instance,
+// using notify(SC_ZERO_TIME) in place of notify_delayed().
+//
+// Revision 1.4  2006/01/13 20:41:59  acg
+// Andy Goodrich: Changes to add port registration to the things that are
+// checked when SC_NO_WRITE_CHECK is not defined.
+//
+// Revision 1.3  2006/01/13 18:47:42  acg
+// Added $Log command so that CVS comments are reproduced in the source.
+//
 
 // Taf!

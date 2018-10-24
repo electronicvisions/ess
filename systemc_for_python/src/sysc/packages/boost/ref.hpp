@@ -1,5 +1,5 @@
-#ifndef BOOST_REF_HPP_INCLUDED
-#define BOOST_REF_HPP_INCLUDED
+#ifndef SC_BOOST_REF_HPP_INCLUDED
+#define SC_BOOST_REF_HPP_INCLUDED
 
 // MS compatible compilers support #pragma once
 
@@ -25,7 +25,7 @@
 //  See http://www.boost.org/libs/bind/ref.html for documentation.
 //
 
-namespace boost
+namespace sc_boost
 {
 
 template<class T> class reference_wrapper
@@ -33,13 +33,13 @@ template<class T> class reference_wrapper
 public:
     typedef T type;
 
-#if defined(BOOST_MSVC) && (BOOST_MSVC < 1300)
+#if defined(SC_BOOST_MSVC) && (SC_BOOST_MSVC < 1300)
 
     explicit reference_wrapper(T& t): t_(&t) {}
 
 #else
 
-    explicit reference_wrapper(T& t): t_(boost::addressof(t)) {}
+    explicit reference_wrapper(T& t): t_(sc_boost::addressof(t)) {}
 
 #endif
 
@@ -55,24 +55,24 @@ private:
 };
 
 # if defined(__BORLANDC__) && (__BORLANDC__ <= 0x570)
-#  define BOOST_REF_CONST
+#  define SC_BOOST_REF_CONST
 # else
-#  define BOOST_REF_CONST const
+#  define SC_BOOST_REF_CONST const
 # endif
 
-template<class T> inline reference_wrapper<T> BOOST_REF_CONST ref(T & t)
+template<class T> inline reference_wrapper<T> SC_BOOST_REF_CONST ref(T & t)
 { 
     return reference_wrapper<T>(t);
 }
 
-template<class T> inline reference_wrapper<T const> BOOST_REF_CONST cref(T const & t)
+template<class T> inline reference_wrapper<T const> SC_BOOST_REF_CONST cref(T const & t)
 {
     return reference_wrapper<T const>(t);
 }
 
-# undef BOOST_REF_CONST
+# undef SC_BOOST_REF_CONST
 
-# ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
+# ifndef SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
 
 template<typename T>
 class is_reference_wrapper
@@ -87,7 +87,7 @@ class unwrap_reference
     typedef T type;
 };
 
-#  define AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(X) \
+#  define SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(X) \
 template<typename T> \
 class is_reference_wrapper< X > \
     : public mpl::true_ \
@@ -102,22 +102,22 @@ class unwrap_reference< X > \
 }; \
 /**/
 
-AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T>)
-#if !defined(BOOST_NO_CV_SPECIALIZATIONS)
-AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> const)
-AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> volatile)
-AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> const volatile)
+SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T>)
+#if !defined(SC_BOOST_NO_CV_SPECIALIZATIONS)
+SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> const)
+SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> volatile)
+SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF(reference_wrapper<T> const volatile)
 #endif
 
-#  undef AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF
+#  undef SC_AUX_REFERENCE_WRAPPER_METAFUNCTIONS_DEF
 
 # else // no partial specialization
 
-} // namespace boost
+} // namespace sc_boost
 
 #include <sysc/packages/boost/type.hpp>
 
-namespace boost
+namespace sc_boost
 {
 
 namespace detail
@@ -155,12 +155,12 @@ template<typename T>
 class is_reference_wrapper
 {
  public:
-    BOOST_STATIC_CONSTANT(
+    SC_BOOST_STATIC_CONSTANT(
         bool, value = (
              sizeof(detail::is_reference_wrapper_test(type<T>()))
             == sizeof(detail::yes_reference_wrapper_t)));
     
-    typedef ::boost::mpl::bool_<value> type;
+    typedef ::sc_boost::mpl::bool_<value> type;
 };
 
 template <typename T>
@@ -170,8 +170,8 @@ class unwrap_reference
       >::template apply<T>
 {};
 
-# endif // BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
+# endif // SC_BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
 
-} // namespace boost
+} // namespace sc_boost
 
-#endif // #ifndef BOOST_REF_HPP_INCLUDED
+#endif // #ifndef SC_BOOST_REF_HPP_INCLUDED

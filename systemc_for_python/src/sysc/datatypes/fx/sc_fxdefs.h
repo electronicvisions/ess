@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -34,8 +36,8 @@
  *****************************************************************************/
 
 // $Log: sc_fxdefs.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:53:57  acg
 // Andy Goodrich: added $Log command so that CVS comments are reproduced in
@@ -46,10 +48,10 @@
 #define SC_FXDEFS_H
 
 
+#include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/utils/sc_machine.h"
 #include "sysc/datatypes/fx/sc_fx_ids.h"
 #include "sysc/datatypes/int/sc_nbutils.h"
-#include "sysc/utils/sc_string.h"
 
 
 namespace sc_dt
@@ -68,7 +70,7 @@ enum sc_enc
 };
 
 
-const std::string to_string( sc_enc );
+SC_API const std::string to_string( sc_enc );
 
 
 inline
@@ -97,7 +99,7 @@ enum sc_q_mode
 };
 
 
-const std::string to_string( sc_q_mode );
+SC_API const std::string to_string( sc_q_mode );
 
 
 inline
@@ -126,7 +128,7 @@ enum sc_o_mode
 // (*) uses the number of saturated bits argument, see the documentation.
 
 
-const std::string to_string( sc_o_mode );
+SC_API const std::string to_string( sc_o_mode );
 
 
 inline
@@ -150,7 +152,7 @@ enum sc_switch
 };
 
 
-const std::string to_string( sc_switch );
+SC_API const std::string to_string( sc_switch );
 
 
 inline
@@ -174,7 +176,7 @@ enum sc_fmt
 };
 
 
-const std::string to_string( sc_fmt );
+SC_API const std::string to_string( sc_fmt );
 
 
 inline
@@ -245,22 +247,23 @@ const int SC_DEFAULT_MAX_WL_ = SC_BUILTIN_MAX_WL_;
 //  Dedicated error reporting and checking.
 // ----------------------------------------------------------------------------
 
+#define SC_ERROR_IF_IMPL_(cnd,id,msg)                                         \
+  do {                                                                        \
+    if( cnd ) {                                                               \
+        SC_REPORT_ERROR( id, msg );                                           \
+        sc_core::sc_abort(); /* can't recover from here */                    \
+    }                                                                         \
+  } while( false )
+
 #ifdef DEBUG_SYSTEMC
-#define SC_ASSERT_(cnd,msg)                                                   \
-{                                                                             \
-    if( ! (cnd) )                                                             \
-        SC_REPORT_ERROR( sc_core::SC_ID_INTERNAL_ERROR_, msg );                        \
-}
+# define SC_ASSERT_(cnd,msg)                                                  \
+    SC_ERROR_IF_IMPL_(!(cnd), sc_core::SC_ID_INTERNAL_ERROR_, msg )
 #else
-#define SC_ASSERT_(cnd,msg)
+# define SC_ASSERT_(cnd,msg) (void(0))
 #endif
 
 #define SC_ERROR_IF_(cnd,id)                                                  \
-{                                                                             \
-    if( cnd )                                                                 \
-        SC_REPORT_ERROR( id, 0 );                                             \
-}
-
+    SC_ERROR_IF_IMPL_( cnd, id, 0 )
 
 #define SC_CHECK_WL_(wl)                                                      \
     SC_ERROR_IF_( (wl) <= 0, sc_core::SC_ID_INVALID_WL_ )
@@ -295,8 +298,8 @@ const int SC_DEFAULT_MAX_WL_ = SC_BUILTIN_MAX_WL_;
 
 #define SC_OBSERVER_DEFAULT_(observer_type)                                   \
 {                                                                             \
-    if( m_observer == 0 && observer_type ## ::default_observer != 0 )         \
-        m_observer = (* ## observer_type ## ::default_observer)();            \
+    if( m_observer == 0 && observer_type::default_observer != 0 )             \
+        m_observer = (*observer_type::default_observer)();                    \
 }
 
 } // namespace sc_dt

@@ -1,39 +1,83 @@
-                SystemC Class Library (Rel. 2.2.0)
+                SystemC Class Library (Rel. 2.3.2)
                 ==================================
 
-This is the release of the SystemC 2.2.0 Class Library.
+This is the release of the SystemC 2.3.2 Class Library.
+This release includes TLM 2.0.4 (Transaction Level Modeling) code,
+as described in the IEEE 1666-2011 Language Reference Manual.
 
 -------------------------------------------------------------------------------
                 IMPORTANT
 
-1. This is the release of SystemC 2.2.0. This release contains bug 
-   fixes for SystemC 2.1.v1 as well as adding IEEE 1666(tm) compliance
-   features.
+1. This is the release of SystemC 2.3.2. This release contains bug fixes
+   for SystemC 2.3.1 (and earlier) as well as adding some minor and
+   experimental features.
 
-2. This release is supported on the following platforms for which it has
-   been well tested:
-    o Sun Solaris 2.8 with GNU C++ compiler versions gcc-2.95.3, 
-      gcc-3.2.3, and gcc-3.3.2
-    o Sun Solaris 2.8 with SUN C++ compiler versions SC6.1, SC6.2,
-      and Forte 7.
-       (Note: tests that use the new dynamic process feature do 
-        not compile with SC6.1
-       )
-    o Linux (Redhat 6.2) with GNU C++ compiler version gcc-2.95.3
-    o Linux (Redhat 7.2) with GNU C++ compiler version gcc-2.95.3
-    o Linux (Redhat 8.0) with GNU C++ compiler versions gcc-2.95.3,
-      gcc-3.2.3 and gcc-3.3.2
-    o Linux (Redhat 9.0) with GNU C++ compiler versions gcc-3.2.2,
-	  gcc-3.4.3
-    o Linux (2.6.9-34.EL kernel) with GNU C++ compiler versions gcc-3.4.5
-      and gcc-4.1.0
-    o 64-bit Linux (Redhat 2.6.9-5.0.3.EL) with GNU C++ compiler version 
-      gcc-3.4.4
-    o HP-UX 11.00 with HP C++ compiler version A.03.39
-      (Note: +O1 is the highest safe optimization level)
-    o MacOSX (Tiger) with GNU C++ compiler version gcc-3.1, gcc-3.3, and
-      gcc-4.0.0
-    o Windows NT 4.0 (SP6a) with VC++ 7.0 
+2. This release is supported on the following platform combinations for
+   which it has been tested:
+
+    o 64-bit Linux (x86_64)
+      (RedHat Enterprise 6; SuSE Enterprise Linux 11; Debian 9)
+      - GNU C++ compiler versions gcc-4.2.2 through gcc-7.2.0
+      - Clang C++ compiler versions clang-3.4 through clang-5.0
+      - Intel C++ Compiler (ICC 15.0.0)
+
+    o 64-bit Linux (x86_64) with 32-bit compiler (--host=i686-linux-gnu)
+      (SuSE Enterprise Linux 11)
+      - GNU C++ compiler versions gcc-4.2.2 through gcc-7.2.0
+      - Intel C++ Compiler (ICC 15.0.0)
+
+    o 64-bit Linux (aarch64)
+      (Ubuntu 16.04)
+      - GNU C++ compiler version gcc-4.5.0
+
+    o 64-bit Mac OS X (x86_64)
+      (10.12 Sierra)
+      - Apple LLVM version 8.0 (clang-800.0.42.1)
+      - GNU C++ compiler (MacPorts) versions gcc-4.9.0, gcc-5.4.0, gcc-6.3.0
+
+    o Microsoft Windows
+      (Windows Server 2008, Windows 10 Enterprise)
+      - Microsoft Visual Studio 2010 (10.0) (Win32 and x64)
+      - Microsoft Visual Studio 2013 (12.0) (Win32 and x64)
+      - Microsoft Visual Studio 2015 (14.0) (Win32 and x64)
+      - Microsoft Visual Studio 2017 (14.1) (Win32 and x64)
+
+      Warning: The fixed-point datatypes are not working as defined on
+               MSVC 2015/2017 (x64) in Release mode.  See RELEASENOTES.
+
+    o Windows Server 2008 (WoW64), Msys 1.0.17(0.48/3/2)
+      - MinGW-w64 GNU C++ compiler version 4.9.2 (x86_64)
+
+
+  This release has not yet been tested or is known not to work as expected
+  on the following formerly supported platforms:
+
+    o GNU C++ compiler versions prior to 4.2.x (all platforms)
+    o FreeBSD 9.0 or later (x86, x86_64) with GNU C++ compiler
+    o HP-UX 11.00 or later with GNU C++ or HP C++ compiler
+    o Sun/Oracle Solaris, with GNU C++ or Sun/Solaris Studio compiler
+    o Mac OS X prior to 10.12 (Sierra) and/or on the x86, PowerPC architectures
+    o Microsoft Visual C++ versions prior to 10.0 (2010)
+    o Cygwin 1.7 or later (x86, x86_64) with GNU C++ compiler
+    o Msys/MinGW32 GNU C++ compiler
+
+
+3. (In)compatibility note
+
+  While it is possible to build SystemC as a shared library (both on
+  ELF-based systems and well as a DLL on Windows), there is no explicitly
+  defined binary interface across different
+
+    - SystemC implementations (e.g. from multiple vendors)
+    - SystemC library versions
+    - Compilers or compiler versions
+    - Operating systems or OS versions
+
+  Some differences might be caught at link time, while other incompatibilities
+  could just sliently lead to undefined behavior during simulation.  Please
+  carefully ensure a consistent build configuration, when integrating binary
+  SystemC models built from separate sources.
+
 
 -------------------------------------------------------------------------------
 
@@ -42,7 +86,7 @@ For details, see the separate RELEASENOTES file.
 
 Licensing and Copyright
 
-   See the separate LICENSE file to determine your rights
+   See the separate LICENSE and NOTICE files to determine your rights
    and responsiblities for using SystemC.
 
 User Documentation
@@ -63,23 +107,24 @@ Additional information
 
    SystemC has a web site at
 
-       http://www.systemc.org
-     
-   Discussion forum: http://www.systemc.org/login_forum.html
+       http://www.accellera.org
+
+   Discussion forum: http://forums.accellera.org/forum/9-systemc/
 
    You can post the bugs and suggestions of general interest to the forum.
-   When reporting bugs please specify the following information (if
-   applicable):
+   When reporting bugs please specify the following information
+   (if applicable):
 
-     1) SystemC version 
-     2) platform, compiler, flags 
-     3) description of the problem 
-     4) steps to reproduce the problem 
-     5) compile/runtime warnings and errors 
-     6) code sample, not more than 100 lines to demonstrate the problem 
+     1) SystemC version
+     2) platform, compiler, flags
+     3) description of the problem
+     4) steps to reproduce the problem
+     5) compile/runtime warnings and errors
+     6) code sample, not more than 100 lines to demonstrate the problem
 
-   Note: All bugs will only be tested against the latest publicly available 
-   version of the product. 
+   Note: All bugs will only be tested against the latest publicly available
+         version of the product.
+
    Note: All C++ compilers that SystemC supports have bugs of different
-   degree of severity. We cannot fix those bugs. Please report them to
-   the compiler vendor.
+         degree of severity. We cannot fix those bugs. Please report them
+         to the compiler vendor.

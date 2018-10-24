@@ -1,32 +1,31 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
 /*****************************************************************************
 
-  sc_uint.h -- A sc_uint is an unsigned integer whose length is less than the
-               machine's native integer length. We provide two implementations
-               (i) sc_uint with length between 1 - 64, and (ii) sc_uint with
-               length between 1 - 32. Implementation (i) is the default
-               implementation, while implementation (ii) can be used only if
-               compiled with -D_32BIT_. Unlike arbitrary precision, arithmetic
-               and bitwise operations are performed using the native types
-               (hence capped at 32/64 bits). The sc_uint integer is useful
-               when the user does not need arbitrary precision and the
-               performance is superior to sc_bigint/sc_biguint.
+  sc_uint.h -- An unsigned integer whose length is less than 64 bits.
+
+               Unlike arbitrary precision, arithmetic and bitwise operations
+               are performed using the native types (hence capped at 64 bits).
+               The sc_uint integer is useful when the user does not need
+               arbitrary precision and the performance is superior to
+               sc_bigint/sc_biguint.
 
   Original Author: Amit Rao, Synopsys, Inc.
 
@@ -49,8 +48,11 @@
  *****************************************************************************/
 
 // $Log: sc_uint.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.2  2011/02/18 20:19:15  acg
+//  Andy Goodrich: updating Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:49:32  acg
 // Added $Log command so that CVS check in comments are reproduced in the

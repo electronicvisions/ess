@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -34,8 +36,20 @@
  *****************************************************************************/
 
 // $Log: sc_fxnum.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.5  2011/08/29 18:04:32  acg
+//  Philipp A. Hartmann: miscellaneous clean ups.
+//
+// Revision 1.4  2011/08/24 22:05:43  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.3  2011/01/19 18:57:40  acg
+//  Andy Goodrich: changes for IEEE_1666_2011.
+//
+// Revision 1.2  2009/03/09 17:26:46  acg
+//  Andy Goodrich: removed ; from namespace { }
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:53:58  acg
 // Andy Goodrich: added $Log command so that CVS comments are reproduced in
@@ -46,6 +60,7 @@
 #define SC_FXNUM_H
 
 
+#include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/datatypes/bit/sc_lv_base.h"
 #include "sysc/datatypes/fx/sc_fxval.h"
 #include "sysc/datatypes/fx/scfx_params.h"
@@ -57,7 +72,7 @@ namespace sc_core {
 	class vcd_sc_fxnum_fast_trace;
 	class wif_sc_fxnum_trace;
 	class wif_sc_fxnum_fast_trace;
-};
+}
 
 
 namespace sc_dt
@@ -78,7 +93,7 @@ class sc_fxnum_fast;
 //  Proxy class for bit-selection in class sc_fxnum, behaves like sc_bit.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum_bitref
+class SC_API sc_fxnum_bitref
 {
     friend class sc_fxnum;
     friend class sc_fxnum_fast_bitref;
@@ -149,7 +164,7 @@ private:
 //  Proxy class for bit-selection in class sc_fxnum_fast, behaves like sc_bit.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum_fast_bitref
+class SC_API sc_fxnum_fast_bitref
 {
     friend class sc_fxnum_fast;
     friend class sc_fxnum_bitref;
@@ -221,7 +236,7 @@ private:
 //  behaves like sc_bv_base.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum_subref
+class SC_API sc_fxnum_subref
 {
     friend class sc_fxnum;
     friend class sc_fxnum_fast_subref;
@@ -384,7 +399,7 @@ private:
 //  behaves like sc_bv_base.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum_fast_subref
+class SC_API sc_fxnum_fast_subref
 {
     friend class sc_fxnum_fast;
     friend class sc_fxnum_subref;
@@ -546,7 +561,7 @@ private:
 //  Base class for the fixed-point types; arbitrary precision.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum
+class SC_API sc_fxnum
 {
     friend class sc_fxval;
 
@@ -584,6 +599,7 @@ protected:
     DECL_CTOR_T(unsigned int)
     DECL_CTOR_T(long)
     DECL_CTOR_T(unsigned long)
+    DECL_CTOR_T(float)
     DECL_CTOR_T(double)
     DECL_CTOR_T(const char*)
     DECL_CTOR_T(const sc_fxval&)
@@ -645,6 +661,7 @@ public:
     DECL_BIN_OP_T(op,unsigned int)                                            \
     DECL_BIN_OP_T(op,long)                                                    \
     DECL_BIN_OP_T(op,unsigned long)                                           \
+    DECL_BIN_OP_T(op,float)                                                  \
     DECL_BIN_OP_T(op,double)                                                  \
     DECL_BIN_OP_T(op,const char*)                                             \
     DECL_BIN_OP_T(op,const sc_fxval&)                                         \
@@ -662,6 +679,7 @@ public:
     DECL_BIN_OP_T(/,unsigned int)
     DECL_BIN_OP_T(/,long)
     DECL_BIN_OP_T(/,unsigned long)
+    DECL_BIN_OP_T(/,float)
     DECL_BIN_OP_T(/,double)
     DECL_BIN_OP_T(/,const char*)
     DECL_BIN_OP_T(/,const sc_fxval&)
@@ -712,6 +730,7 @@ public:
     DECL_BIN_FNC_T(fnc,unsigned int)                                          \
     DECL_BIN_FNC_T(fnc,long)                                                  \
     DECL_BIN_FNC_T(fnc,unsigned long)                                         \
+    DECL_BIN_FNC_T(fnc,float)                                                \
     DECL_BIN_FNC_T(fnc,double)                                                \
     DECL_BIN_FNC_T(fnc,const char*)                                           \
     DECL_BIN_FNC_T(fnc,const sc_fxval&)                                       \
@@ -758,6 +777,7 @@ public:
     DECL_REL_OP_T(op,unsigned int)                                            \
     DECL_REL_OP_T(op,long)                                                    \
     DECL_REL_OP_T(op,unsigned long)                                           \
+    DECL_REL_OP_T(op,float)                                                  \
     DECL_REL_OP_T(op,double)                                                  \
     DECL_REL_OP_T(op,const char*)                                             \
     DECL_REL_OP_T(op,const sc_fxval&)                                         \
@@ -799,6 +819,7 @@ public:
     DECL_ASN_OP_T(op,unsigned int)                                            \
     DECL_ASN_OP_T(op,long)                                                    \
     DECL_ASN_OP_T(op,unsigned long)                                           \
+    DECL_ASN_OP_T(op,float)                                                  \
     DECL_ASN_OP_T(op,double)                                                  \
     DECL_ASN_OP_T(op,const char*)                                             \
     DECL_ASN_OP_T(op,const sc_fxval&)                                         \
@@ -967,7 +988,7 @@ private:
 //  Base class for the fixed-point types; limited precision.
 // ----------------------------------------------------------------------------
 
-class sc_fxnum_fast
+class SC_API sc_fxnum_fast
 {
     friend class sc_fxval_fast;
 
@@ -1005,6 +1026,7 @@ protected:
     DECL_CTOR_T(unsigned int)
     DECL_CTOR_T(long)
     DECL_CTOR_T(unsigned long)
+    DECL_CTOR_T(float)
     DECL_CTOR_T(double)
     DECL_CTOR_T(const char*)
     DECL_CTOR_T(const sc_fxval&)
@@ -1067,6 +1089,7 @@ public:
     DECL_BIN_OP_T(op,unsigned int)                                            \
     DECL_BIN_OP_T(op,long)                                                    \
     DECL_BIN_OP_T(op,unsigned long)                                           \
+    DECL_BIN_OP_T(op,float)                                                  \
     DECL_BIN_OP_T(op,double)                                                  \
     DECL_BIN_OP_T(op,const char*)                                             \
     DECL_BIN_OP_T(op,const sc_fxval_fast&)                                    \
@@ -1082,6 +1105,7 @@ public:
     DECL_BIN_OP_T(/,unsigned int)
     DECL_BIN_OP_T(/,long)
     DECL_BIN_OP_T(/,unsigned long)
+    DECL_BIN_OP_T(/,float)
     DECL_BIN_OP_T(/,double)
     DECL_BIN_OP_T(/,const char*)
     DECL_BIN_OP_T(/,const sc_fxval_fast&)
@@ -1132,6 +1156,7 @@ public:
     DECL_BIN_FNC_T(fnc,unsigned int)                                          \
     DECL_BIN_FNC_T(fnc,long)                                                  \
     DECL_BIN_FNC_T(fnc,unsigned long)                                         \
+    DECL_BIN_FNC_T(fnc,float)                                                \
     DECL_BIN_FNC_T(fnc,double)                                                \
     DECL_BIN_FNC_T(fnc,const char*)                                           \
     DECL_BIN_FNC_T(fnc,const sc_fxval&)                                       \
@@ -1178,6 +1203,7 @@ public:
     DECL_REL_OP_T(op,unsigned int)                                            \
     DECL_REL_OP_T(op,long)                                                    \
     DECL_REL_OP_T(op,unsigned long)                                           \
+    DECL_REL_OP_T(op,float)                                                  \
     DECL_REL_OP_T(op,double)                                                  \
     DECL_REL_OP_T(op,const char*)                                             \
     DECL_REL_OP_T(op,const sc_fxval_fast&)                                    \
@@ -1217,6 +1243,7 @@ public:
     DECL_ASN_OP_T(op,unsigned int)                                            \
     DECL_ASN_OP_T(op,long)                                                    \
     DECL_ASN_OP_T(op,unsigned long)                                           \
+    DECL_ASN_OP_T(op,float)                                                  \
     DECL_ASN_OP_T(op,double)                                                  \
     DECL_ASN_OP_T(op,const char*)                                             \
     DECL_ASN_OP_T(op,const sc_fxval&)                                         \
@@ -2596,6 +2623,7 @@ DEFN_CTOR_T_A(int)
 DEFN_CTOR_T_A(unsigned int)
 DEFN_CTOR_T_A(long)
 DEFN_CTOR_T_A(unsigned long)
+DEFN_CTOR_T_A(float)
 DEFN_CTOR_T_A(double)
 DEFN_CTOR_T_A(const char*)
 DEFN_CTOR_T_B(const sc_fxval&)
@@ -2740,6 +2768,7 @@ DEFN_BIN_OP_T(op,fnc,int)                                                     \
 DEFN_BIN_OP_T(op,fnc,unsigned int)                                            \
 DEFN_BIN_OP_T(op,fnc,long)                                                    \
 DEFN_BIN_OP_T(op,fnc,unsigned long)                                           \
+DEFN_BIN_OP_T(op,fnc,float)                                                  \
 DEFN_BIN_OP_T(op,fnc,double)                                                  \
 DEFN_BIN_OP_T(op,fnc,const char*)                                             \
 DEFN_BIN_OP_T(op,fnc,const sc_fxval_fast&)                                    \
@@ -2780,6 +2809,7 @@ DEFN_BIN_OP_T(/,div,int)
 DEFN_BIN_OP_T(/,div,unsigned int)
 DEFN_BIN_OP_T(/,div,long)
 DEFN_BIN_OP_T(/,div,unsigned long)
+DEFN_BIN_OP_T(/,div,float)
 DEFN_BIN_OP_T(/,div,double)
 DEFN_BIN_OP_T(/,div,const char*)
 DEFN_BIN_OP_T(/,div,const sc_fxval_fast&)
@@ -2937,6 +2967,7 @@ DEFN_BIN_FNC_T(fnc,int)                                                       \
 DEFN_BIN_FNC_T(fnc,unsigned int)                                              \
 DEFN_BIN_FNC_T(fnc,long)                                                      \
 DEFN_BIN_FNC_T(fnc,unsigned long)                                             \
+DEFN_BIN_FNC_T(fnc,float)                                                    \
 DEFN_BIN_FNC_T(fnc,double)                                                    \
 DEFN_BIN_FNC_T(fnc,const char*)                                               \
 DEFN_BIN_FNC_T(fnc,const sc_fxval_fast&)                                      \
@@ -3060,6 +3091,7 @@ DEFN_REL_OP_T(op,ret,int)                                                     \
 DEFN_REL_OP_T(op,ret,unsigned int)                                            \
 DEFN_REL_OP_T(op,ret,long)                                                    \
 DEFN_REL_OP_T(op,ret,unsigned long)                                           \
+DEFN_REL_OP_T(op,ret,float)                                                  \
 DEFN_REL_OP_T(op,ret,double)                                                  \
 DEFN_REL_OP_T(op,ret,const char*)                                             \
 DEFN_REL_OP_T(op,ret,const sc_fxval_fast&)                                    \
@@ -3120,6 +3152,7 @@ DEFN_ASN_OP_T(int)
 DEFN_ASN_OP_T(unsigned int)
 DEFN_ASN_OP_T(long)
 DEFN_ASN_OP_T(unsigned long)
+DEFN_ASN_OP_T(float)
 DEFN_ASN_OP_T(double)
 DEFN_ASN_OP_T(const char*)
 DEFN_ASN_OP_T(const sc_fxval_fast&)
@@ -3195,6 +3228,7 @@ DEFN_ASN_OP_T(op,fnc,int)                                                     \
 DEFN_ASN_OP_T(op,fnc,unsigned int)                                            \
 DEFN_ASN_OP_T(op,fnc,long)                                                    \
 DEFN_ASN_OP_T(op,fnc,unsigned long)                                           \
+DEFN_ASN_OP_T(op,fnc,float)                                                  \
 DEFN_ASN_OP_T(op,fnc,double)                                                  \
 DEFN_ASN_OP_T(op,fnc,const char*)                                             \
 DEFN_ASN_OP_T(op,fnc,const sc_fxval_fast&)                                    \
@@ -3399,7 +3433,7 @@ short
 sc_fxnum::to_short() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<short>( m_rep->to_double() );
+    return static_cast<short>( m_rep->to_uint64() );
 }
 
 inline
@@ -3407,7 +3441,7 @@ unsigned short
 sc_fxnum::to_ushort() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<unsigned short>( m_rep->to_double() );
+    return static_cast<unsigned short>( m_rep->to_uint64() );
 }
 
 inline
@@ -3415,7 +3449,7 @@ int
 sc_fxnum::to_int() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<int>( m_rep->to_double() );
+    return static_cast<int>( m_rep->to_uint64() );
 }
 
 inline
@@ -3423,7 +3457,7 @@ int64
 sc_fxnum::to_int64() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<int64>( m_rep->to_double() );
+    return static_cast<int64>( m_rep->to_uint64() );
 }
 
 inline
@@ -3431,7 +3465,7 @@ unsigned int
 sc_fxnum::to_uint() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<unsigned int>( m_rep->to_double() );
+    return static_cast<unsigned int>( m_rep->to_uint64() );
 }
 
 inline
@@ -3439,7 +3473,7 @@ uint64
 sc_fxnum::to_uint64() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<uint64>( m_rep->to_double() );
+    return m_rep->to_uint64();
 }
 
 inline
@@ -3447,7 +3481,7 @@ long
 sc_fxnum::to_long() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<long>( m_rep->to_double() );
+    return static_cast<long>( m_rep->to_uint64() );
 }
 
 inline
@@ -3455,7 +3489,7 @@ unsigned long
 sc_fxnum::to_ulong() const
 {
     SC_FXNUM_OBSERVER_READ_( *this )
-    return static_cast<unsigned long>( m_rep->to_double() );
+    return static_cast<unsigned long>( m_rep->to_uint64() );
 }
 
 inline
@@ -3720,6 +3754,7 @@ DEFN_CTOR_T_A(int)
 DEFN_CTOR_T_A(unsigned int)
 DEFN_CTOR_T_A(long)
 DEFN_CTOR_T_A(unsigned long)
+DEFN_CTOR_T_A(float)
 DEFN_CTOR_T_A(double)
 DEFN_CTOR_T_B(const char*)
 DEFN_CTOR_T_C(const sc_fxval&)
@@ -3862,6 +3897,7 @@ DEFN_BIN_OP_T(op,int)                                                         \
 DEFN_BIN_OP_T(op,unsigned int)                                                \
 DEFN_BIN_OP_T(op,long)                                                        \
 DEFN_BIN_OP_T(op,unsigned long)                                               \
+DEFN_BIN_OP_T(op,float)                                                      \
 DEFN_BIN_OP_T(op,double)                                                      \
 DEFN_BIN_OP_T(op,const char*)                                                 \
 DEFN_BIN_OP_OTHER(op)
@@ -3899,6 +3935,7 @@ DEFN_BIN_OP_T(/,int)
 DEFN_BIN_OP_T(/,unsigned int)
 DEFN_BIN_OP_T(/,long)
 DEFN_BIN_OP_T(/,unsigned long)
+DEFN_BIN_OP_T(/,float)
 DEFN_BIN_OP_T(/,double)
 DEFN_BIN_OP_T(/,const char*)
 //DEFN_BIN_OP_OTHER(/)
@@ -4049,6 +4086,7 @@ DEFN_BIN_FNC_T(fnc,op,int)                                                    \
 DEFN_BIN_FNC_T(fnc,op,unsigned int)                                           \
 DEFN_BIN_FNC_T(fnc,op,long)                                                   \
 DEFN_BIN_FNC_T(fnc,op,unsigned long)                                          \
+DEFN_BIN_FNC_T(fnc,op,float)                                                 \
 DEFN_BIN_FNC_T(fnc,op,double)                                                 \
 DEFN_BIN_FNC_T(fnc,op,const char*)                                            \
 DEFN_BIN_FNC_T(fnc,op,const sc_fxval&)                                        \
@@ -4165,6 +4203,7 @@ DEFN_REL_OP_T(op,int)                                                         \
 DEFN_REL_OP_T(op,unsigned int)                                                \
 DEFN_REL_OP_T(op,long)                                                        \
 DEFN_REL_OP_T(op,unsigned long)                                               \
+DEFN_REL_OP_T(op,float)                                                      \
 DEFN_REL_OP_T(op,double)                                                      \
 DEFN_REL_OP_T(op,const char*)                                                 \
 DEFN_REL_OP_OTHER(op)
@@ -4223,6 +4262,7 @@ DEFN_ASN_OP_T(int)
 DEFN_ASN_OP_T(unsigned int)
 DEFN_ASN_OP_T(long)
 DEFN_ASN_OP_T(unsigned long)
+DEFN_ASN_OP_T(float)
 DEFN_ASN_OP_T(double)
 DEFN_ASN_OP_T(const char*)
 DEFN_ASN_OP_T(const sc_fxval&)
@@ -4292,6 +4332,7 @@ DEFN_ASN_OP_T(op,int)                                                         \
 DEFN_ASN_OP_T(op,unsigned int)                                                \
 DEFN_ASN_OP_T(op,long)                                                        \
 DEFN_ASN_OP_T(op,unsigned long)                                               \
+DEFN_ASN_OP_T(op,float)                                                      \
 DEFN_ASN_OP_T(op,double)                                                      \
 DEFN_ASN_OP_T(op,const char*)                                                 \
 DEFN_ASN_OP_T(op,const sc_fxval&)                                             \
@@ -4510,64 +4551,81 @@ inline
 short
 sc_fxnum_fast::to_short() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<short>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<short>( to_uint64() );
 }
 
 inline
 unsigned short
 sc_fxnum_fast::to_ushort() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<unsigned short>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<unsigned short>( to_uint64() );
 }
 
 inline
 int
 sc_fxnum_fast::to_int() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<int>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<int>( to_uint64() );
 }
 
 inline
 int64
 sc_fxnum_fast::to_int64() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<int64>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<int64>( to_uint64() );
 }
 
 inline
 unsigned int
 sc_fxnum_fast::to_uint() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<unsigned int>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<unsigned int>( to_uint64() );
 }
 
 inline
 uint64
 sc_fxnum_fast::to_uint64() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<uint64>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in is_normal
+    if (!is_normal())
+    {
+        return 0;
+    }
+
+    int exponent;
+    double mantissa_dbl = frexp(m_val, &exponent);
+
+    uint64 mantissa = static_cast<uint64>(fabs(mantissa_dbl) * (UINT64_ONE << 53));
+    exponent -= 53;
+
+    if (!(-64 < exponent && exponent < 64))
+    {
+        return 0;
+    }
+
+    mantissa = exponent >= 0 ? mantissa << exponent : mantissa >> -exponent;
+    return mantissa_dbl >= 0 ? mantissa : -mantissa;
 }
 
 inline
 long
 sc_fxnum_fast::to_long() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<long>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<long>( to_uint64() );
 }
 
 inline
 unsigned long
 sc_fxnum_fast::to_ulong() const
 {
-    SC_FXNUM_FAST_OBSERVER_READ_( *this )
-    return static_cast<unsigned long>( m_val );
+    // SC_FXNUM_FAST_OBSERVER_READ_ in to_uint64
+    return static_cast<unsigned long>( to_uint64() );
 }
 
 inline
@@ -4701,7 +4759,7 @@ inline
 void
 sc_fxnum_fast::observer_read() const
 {
-    SC_FXNUM_OBSERVER_READ_( *this );
+    SC_FXNUM_FAST_OBSERVER_READ_( *this );
 }
 
 

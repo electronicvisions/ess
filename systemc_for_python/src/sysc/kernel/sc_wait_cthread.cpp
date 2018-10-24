@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -22,22 +24,118 @@
   Original Author: Stan Y. Liao, Synopsys, Inc.
                    Martin Janssen, Synopsys, Inc.
 
+  CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
 
-/*****************************************************************************
 
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
 
-      Name, Affiliation, Date:
-  Description of Modification:
+#include "sysc/kernel/sc_kernel_ids.h"
+#include "sysc/kernel/sc_cthread_process.h"
+#include "sysc/kernel/sc_simcontext_int.h"
+#include "sysc/kernel/sc_wait_cthread.h"
+#include "sysc/communication/sc_port.h"
+#include "sysc/kernel/sc_wait.h"
 
- *****************************************************************************/
+#include <sstream>
 
-/* 
+namespace sc_core {
+
+// for SC_CTHREADs
+
+void
+halt( sc_simcontext* simc )
+{
+    sc_curr_proc_handle cpi = simc->get_curr_proc_info();
+    switch( cpi->kind ) {
+    case SC_CTHREAD_PROC_: {
+	reinterpret_cast<sc_cthread_handle>( cpi->process_handle )->wait_halt();
+	break;
+    }
+    default:
+	SC_REPORT_ERROR( SC_ID_HALT_NOT_ALLOWED_, 0 );
+	break;
+    }
+}
+
+
+void
+wait( int n, sc_simcontext* simc )
+{
+    sc_curr_proc_handle cpi = simc->get_curr_proc_info();
+    if( n <= 0 ) {
+        std::stringstream msg;
+        msg << "n = " << n;
+        SC_REPORT_ERROR( SC_ID_WAIT_N_INVALID_, msg.str().c_str() );
+    }
+    switch( cpi->kind ) {
+      case SC_THREAD_PROC_:
+      case SC_CTHREAD_PROC_:
+	reinterpret_cast<sc_cthread_handle>( cpi->process_handle )->wait_cycles( n );
+        break;
+      default:
+        SC_REPORT_ERROR( SC_ID_WAIT_NOT_ALLOWED_, "\n        "
+	                 "in SC_METHODs use next_trigger() instead" );
+        break;
+    }
+}
+
+
+void
+at_posedge( const sc_signal_in_if<bool>& s, sc_simcontext* simc )
+{
+    if( s.read() == true )
+        do { wait(simc); } while ( s.read() == true );
+    do { wait(simc); } while ( s.read() == false );
+}
+
+void
+at_posedge( const sc_signal_in_if<sc_dt::sc_logic>& s, sc_simcontext* simc )
+{
+    if( s.read() == '1' )
+        do { wait(simc); } while ( s.read() == '1' );
+    do { wait(simc); } while ( s.read() == '0' );
+}
+
+void
+at_negedge( const sc_signal_in_if<bool>& s, sc_simcontext* simc )
+{
+    if( s.read() == false )
+        do { wait(simc); } while ( s.read() == false );
+    do { wait(simc); } while ( s.read() == true );
+}
+
+void
+at_negedge( const sc_signal_in_if<sc_dt::sc_logic>& s, sc_simcontext* simc )
+{
+    if( s.read() == '0' )
+        do { wait(simc); } while ( s.read() == '0' );
+    do { wait(simc); } while ( s.read() == '1' );
+}
+
+
+} // namespace sc_core
+
+/*
 $Log: sc_wait_cthread.cpp,v $
-Revision 1.1.1.1  2006/12/15 20:31:37  acg
-SystemC 2.2
+Revision 1.6  2011/08/26 20:46:11  acg
+ Andy Goodrich: moved the modification log to the end of the file to
+ eliminate source line number skew when check-ins are done.
+
+Revision 1.5  2011/02/18 20:27:14  acg
+ Andy Goodrich: Updated Copyrights.
+
+Revision 1.4  2011/02/13 21:47:38  acg
+ Andy Goodrich: update copyright notice.
+
+Revision 1.3  2009/10/14 19:07:42  acg
+ Andy Goodrich: added an error message for wait(n) being called from an
+ SC_METHOD.
+
+Revision 1.2  2008/05/22 17:06:27  acg
+ Andy Goodrich: updated copyright notice to include 2008.
+
+Revision 1.1.1.1  2006/12/15 20:20:05  acg
+SystemC 2.3
 
 Revision 1.3  2006/03/13 20:26:51  acg
  Andy Goodrich: Addition of forward class declarations, e.g.,
@@ -69,88 +167,5 @@ Andy Goodrich, Forte Design Systems, Inc.
      checkout source.
 
 */
-
-
-#include "sysc/kernel/sc_kernel_ids.h"
-#include "sysc/kernel/sc_cthread_process.h"
-#include "sysc/kernel/sc_simcontext_int.h"
-#include "sysc/kernel/sc_wait_cthread.h"
-#include "sysc/communication/sc_port.h"
-#include "sysc/kernel/sc_wait.h"
-namespace sc_core 
-{
-
-// for SC_CTHREADs
-
-void
-halt( sc_simcontext* simc )
-{
-    sc_curr_proc_handle cpi = simc->get_curr_proc_info();
-    switch( cpi->kind ) {
-    case SC_CTHREAD_PROC_: {
-	RCAST<sc_cthread_handle>( cpi->process_handle )->wait_halt();
-	break;
-    }
-    default:
-	SC_REPORT_ERROR( SC_ID_HALT_NOT_ALLOWED_, 0 );
-	break;
-    }
-}
-
-
-void
-wait( int n, sc_simcontext* simc )
-{
-    sc_curr_proc_handle cpi = simc->get_curr_proc_info();
-    if( n <= 0 ) {
-	char msg[BUFSIZ];
-	std::sprintf( msg, "n = %d", n );
-	SC_REPORT_ERROR( SC_ID_WAIT_N_INVALID_, msg );
-    }
-    switch( cpi->kind ) {
-      case SC_THREAD_PROC_: 
-      case SC_CTHREAD_PROC_: 
-	RCAST<sc_cthread_handle>( cpi->process_handle )->wait_cycles( n );
-        break;
-      default:
-        break;
-    }
-}
-
-
-void
-at_posedge( const sc_signal_in_if<bool>& s, sc_simcontext* simc )
-{
-    if( s.read() == true ) 
-        do { wait(simc); } while ( s.read() == true );
-    do { wait(simc); } while ( s.read() == false );
-}
-
-void
-at_posedge( const sc_signal_in_if<sc_dt::sc_logic>& s, sc_simcontext* simc )
-{
-    if( s.read() == '1' ) 
-        do { wait(simc); } while ( s.read() == '1' );
-    do { wait(simc); } while ( s.read() == '0' );
-}
-
-void
-at_negedge( const sc_signal_in_if<bool>& s, sc_simcontext* simc )
-{
-    if( s.read() == false ) 
-        do { wait(simc); } while ( s.read() == false );
-    do { wait(simc); } while ( s.read() == true );
-}
-
-void
-at_negedge( const sc_signal_in_if<sc_dt::sc_logic>& s, sc_simcontext* simc )
-{
-    if( s.read() == '0' ) 
-        do { wait(simc); } while ( s.read() == '0' );
-    do { wait(simc); } while ( s.read() == '1' );
-}
-
-
-} // namespace sc_core
 
 // Taf!

@@ -44,7 +44,7 @@ public:
     mutexfile spike_receive_file; ///<filehandle to record received events on the wafer
     mutexfile spike_transm_file;  ///<filehandle to record transmitted events on the wafer
 
-	long _duration_in_NS;  //!< duration of the systemc simulation in nano-seconds, needed for the progress_bar.
+	int _duration_in_NS;  //!< duration of the systemc simulation in nano-seconds, needed for the progress_bar.
 
 	std::vector< std::unique_ptr<pcb> > pcb_i; //!< array containing all pcb instances
 

@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -99,7 +101,7 @@
     real2_out.range(14,0) = tmp_real3.range(24,10);
     imag2_out.range(14,0) = tmp_imag3.range(24,10);
 
- }; // end func_butterfly
+ } // end func_butterfly
 
 void fft::entry()
 { 
@@ -234,9 +236,9 @@ void fft::entry()
  
         //First Iteration :  Simple calculation, with no multiplies
           i = 0;
-          while(i < N)  
+          while(i < (short)N)  
           {
-             index =  i; index2 = i + len; 
+             index =  i; index2 = i + (short)len; 
 
              tmp_real = real[index] + real[index2];
              tmp_imag = imag[index] + imag[index2];
@@ -247,19 +249,19 @@ void fft::entry()
              real[index] = tmp_real;
              imag[index] = tmp_imag;
 	    
-	     i = i + (len << 1);   
+             i = (short)(i + (len << 1));
           }
 
         //Remaining Iterations: Use Stored W
          j = 1; windex = incr - 1;
         // This loop executes N/2 times at the first stage, N/2 times at the second.. once at last stage
-         while (j < len)
+         while (j < (short)len)
          {
             i = j; 
-            while (i < N) 
+            while (i < (short)N) 
             {
               index = i;
-              index2 = i + len;
+              index2 = i + (short)len;
 
 	      // Read in the data and twiddle factors
 	      w_real  = W_real[windex];
@@ -279,7 +281,7 @@ void fft::entry()
               real[index2] = real2_out;
               imag[index2] = imag2_out; 
 
-              i = i + (len << 1);
+              i = (short)(i + (len << 1));
             }
             windex = windex + incr;
             j++;
@@ -308,7 +310,7 @@ void fft::entry()
        bits_index[2]= bits_i[1];
        bits_index[1]= bits_i[2];
        bits_index[0]= bits_i[3];
-       index = bits_index;
+       index = (short)bits_index;
        real1 = real[index];
        imag1 = imag[index];
        out_real.write(real1); 

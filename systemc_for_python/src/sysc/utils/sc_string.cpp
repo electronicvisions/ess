@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,82 +23,31 @@
 
   Original Author: Stan Y. Liao, Synopsys, Inc.
 
+  CHANGE LOG AT END OF FILE
  *****************************************************************************/
 
-/*****************************************************************************
+#include <cctype>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
 
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-
-// $Log: sc_string.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:39  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:11  acg
-// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
-// the source.
-//
-
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-
-#include "sysc/utils/sc_iostream.h"
 #include "sysc/utils/sc_string.h"
+#include "sysc/utils/sc_report.h"  // sc_assert
 #include "sysc/utils/sc_utils_ids.h"
+#include "sysc/utils/sc_report.h"
+
+using std::isspace;
+using std::strcmp;
+using std::strcpy;
+using std::strlen;
+using std::strncpy;
 
 namespace sc_dt {
 
-inline int
+inline static int
 sc_roundup( int n, int m )
 {
     return ((n - 1) / m + 1) * m;
-}
-
-
-// ----------------------------------------------------------------------------
-//  ENUM : sc_numrep
-//
-//  Enumeration of number representations for character string conversion.
-// ----------------------------------------------------------------------------
-
-const std::string
-to_string( sc_numrep numrep )
-{
-    switch( numrep )
-    {
-        case SC_DEC:
-	    return std::string( "SC_DEC" );
-        case SC_BIN:
-	    return std::string( "SC_BIN" );
-        case SC_BIN_US:
-	    return std::string( "SC_BIN_US" );
-        case SC_BIN_SM:
-	    return std::string( "SC_BIN_SM" );
-        case SC_OCT:
-	    return std::string( "SC_OCT" );
-        case SC_OCT_US:
-	    return std::string( "SC_OCT_US" );
-        case SC_OCT_SM:
-	    return std::string( "SC_OCT_SM" );
-        case SC_HEX:
-	    return std::string( "SC_HEX" );
-        case SC_HEX_US:
-	    return std::string( "SC_HEX_US" );
-        case SC_HEX_SM:
-	    return std::string( "SC_HEX_SM" );
-        case SC_CSD:
-	    return std::string( "SC_CSD" );
-	default:
-	    return std::string( "unknown" );
-    }
 }
 
 
@@ -106,24 +57,21 @@ to_string( sc_numrep numrep )
 //  Reference counting string implementation class.
 // ----------------------------------------------------------------------------
 
-class sc_string_rep
+class SC_API sc_string_rep
 {
     friend class sc_string_old;
     friend ::std::ostream& operator<<( ::std::ostream&, const sc_string_old& );
     friend ::std::istream& operator>>( ::std::istream&, sc_string_old& );
     friend sc_string_old operator+( const char*, const sc_string_old& );
 
-    sc_string_rep( int size = 16 )
+    sc_string_rep( int size = 16 ) :
+        ref_count(1), alloc( sc_roundup( size, 16 ) ), str( new char[alloc] )
     {
-        ref_count = 1;
-        alloc = sc_roundup( size, 16 );
-        str = new char[alloc];
         *str = '\0';
     }
 
-    sc_string_rep( const char* s )
+    sc_string_rep( const char* s ) : ref_count(1), alloc(0), str(0)
     {
-        ref_count = 1;
         if (s) {
             alloc = 1 + strlen(s);
             str = strcpy( new char[alloc], s );
@@ -138,7 +86,7 @@ class sc_string_rep
 
     ~sc_string_rep()
     {
-        assert( ref_count == 0 );
+        sc_assert( ref_count == 0 );
         delete[] str;
     }
 
@@ -153,9 +101,9 @@ class sc_string_rep
 
 // IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
 
-sc_string_rep::sc_string_rep( const char* s, int n)
+sc_string_rep::sc_string_rep( const char* s, int n) :
+    ref_count(1), alloc(0), str(0)
 {
-    ref_count = 1;
     if (s && n>0) {
         alloc = 1 + n;
         str = strncpy( new char[alloc], s,n );
@@ -194,30 +142,26 @@ sc_string_rep::set_string( const char* s )
 
 // constructors
 
-sc_string_old::sc_string_old( int size )
+sc_string_old::sc_string_old( int size ) : rep( new sc_string_rep(size) )
 {
-    rep = new sc_string_rep( size );
 }
 
-sc_string_old::sc_string_old( const char* s )
+sc_string_old::sc_string_old( const char* s ) : rep( new sc_string_rep(s) )
 {
-    rep = new sc_string_rep( s );
 }
 
-sc_string_old::sc_string_old( const char* s, int n )
+sc_string_old::sc_string_old( const char* s, int n ) : 
+    rep( new sc_string_rep( s, n ) )
 {
-    rep = new sc_string_rep( s, n );
 }
 
-sc_string_old::sc_string_old( const sc_string_old& s )
+sc_string_old::sc_string_old( const sc_string_old& s ) : rep( s.rep )
 {
-    rep = s.rep;
     rep->ref_count ++;
 }
 
-sc_string_old::sc_string_old( sc_string_rep* r )
+sc_string_old::sc_string_old( sc_string_rep* r ) : rep(r)
 {
-    rep = r;
 }
 
 
@@ -427,38 +371,33 @@ sc_string_old::set( int i, char c )
     rep->str[i] = c;
 }
 
+#if defined(_MSC_VER)
+   // Windows provides safer implementation
+#  define sc_vsnprintf _vsnprintf
+#else
+#  define sc_vsnprintf vsnprintf
+#endif
+
 sc_string_old sc_string_old::to_string(const char* format, ...)
 {
-   va_list argptr;
-   int cnt;
+   std::va_list argptr;
    sc_string_old result;
    char buffer[1024]; // static string buffer
    buffer[1023]=000;
 
    va_start(argptr, format);
-#if defined(WIN32)
-   // Windows provides safer implementation
-#if defined(_MSC_VER)
-   cnt = _vsnprintf(buffer, 1024, format, argptr);
-#else
-   cnt = vsnprintf(buffer, 1024, format, argptr);
-#endif
+   int cnt = sc_vsnprintf(buffer, 1024, format, argptr);
    if(cnt>1023) // string too long
    {
      int buf_size = 1024;
      const int max_size = 65000;
-     char* buf; // dynamic buffer
+     char* buf = 0; // dynamic string buffer
      do
      {
+       delete[] buf;
        buf_size*=2;
        buf = new char[buf_size];
-#if defined(_MSC_VER)
-       cnt = _vsnprintf(buffer, buf_size, format, argptr);
-#else
-       cnt = vsnprintf(buffer, buf_size, format, argptr);
-#endif
-       if(buf_size<max_size && cnt>=buf_size)
-         delete[] buf;
+       cnt = sc_vsnprintf(buf, buf_size, format, argptr);
      }
      while( buf_size<max_size && cnt>=buf_size);
      if(cnt>=buf_size)
@@ -472,20 +411,7 @@ sc_string_old sc_string_old::to_string(const char* format, ...)
    }
    else
      result = buffer;
-#else
-   try {
-     // this may end up in a core dump
-     // if we are lucky we can catch exception
-     cnt = vsprintf(buffer, format, argptr);
-   }
-   catch(...)
-   {
-     SC_REPORT_WARNING( sc_core::SC_ID_STRING_TOO_LONG_,
-			"program may become unstable" );
-   }
-   buffer[1023]=000; // in case it's longer
-   result = buffer;
-#endif
+
    va_end(argptr);
 
    return result;
@@ -499,8 +425,10 @@ sc_string_old::print( ::std::ostream& os ) const
 
 void sc_string_old::test(int position)const
 {
-	if(position<0 || position>=length())
-		SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, "sc_string_old::test" );
+    if(position<0 || position>=length()) {
+        SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, "sc_string_old::test" );
+        sc_core::sc_abort(); // can't recover from here
+    }
 }
 
 // TODO: conveniece formatting functions for common types
@@ -580,8 +508,10 @@ sc_string_old::remove(unsigned index, unsigned length)
 sc_string_old&
 sc_string_old::insert(const sc_string_old& sub_string, unsigned index)
 {
-    if(index>(unsigned)length())   
-	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, "sc_string_old::insert" );
+    if(index>(unsigned)length()) {
+        SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, "sc_string_old::insert" );
+        return *this;
+    }
     return (*this) = substr(0,index-1)+sub_string+substr(index,length()-1);
 }
 
@@ -664,3 +594,29 @@ operator >> ( ::std::istream& is, sc_string_old& s )
     return is;
 }
  } // namespace sc_dt
+
+// $Log: sc_string.cpp,v $
+// Revision 1.6  2011/08/29 18:04:32  acg
+//  Philipp A. Hartmann: miscellaneous clean ups.
+//
+// Revision 1.5  2011/08/26 22:49:42  acg
+//  Torsten Maehne: remove redudant assignment.
+//
+// Revision 1.4  2011/08/26 20:46:19  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.3  2011/08/24 22:05:56  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.2  2011/02/18 20:38:44  acg
+//  Andy Goodrich: Updated Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:06  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:53:11  acg
+// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
+// the source.
+
+// taf

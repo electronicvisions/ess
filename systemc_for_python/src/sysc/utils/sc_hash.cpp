@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -22,40 +24,28 @@
 
   Original Author: Stan Y. Liao, Synopsys, Inc.
 
+  CHANGE LOG AT END OF FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-
-
-// $Log: sc_hash.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:39  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:10  acg
-// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
-// the source.
-//
-
-#include <assert.h>
-#include <cstdlib>
 
 #include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/utils/sc_hash.h"
 #include "sysc/utils/sc_mempool.h"
+#include "sysc/utils/sc_report.h"  // sc_assert
+
+#include <cstdlib>
+#include <cstddef>
+#include <cstring>
+#include <algorithm>
 
 namespace sc_core {
 
-const double PHASH_DEFAULT_GROW_FACTOR     = 2.0;
+// we can't assume global availability of uintptr_t,
+// approximate it by size_t
+typedef std::size_t uintptr_t;
 
-class sc_phash_elem {
+SC_API const double PHASH_DEFAULT_GROW_FACTOR     = 2.0;
+
+class SC_API sc_phash_elem {
     friend class sc_phash_base;
     friend class sc_phash_base_iter;
 
@@ -66,11 +56,13 @@ private:
 
     sc_phash_elem( void* k, void* c, sc_phash_elem* n )
         : key(k), contents(c), next(n) { }
-    sc_phash_elem() { }
+    sc_phash_elem() : key(0), contents(0), next(0) { }
     ~sc_phash_elem() { }
 
-    static void* operator new(std::size_t sz)            { return sc_mempool::allocate(sz); }
-    static void operator delete(void* p, std::size_t sz) { sc_mempool::release(p, sz);      }
+    static void* operator new(std::size_t sz)
+        { return sc_mempool::allocate(sz); }
+    static void operator delete(void* p, std::size_t sz)
+        { sc_mempool::release(p, sz);      }
 };
 
 
@@ -82,15 +74,11 @@ sc_phash_base::sc_phash_base(
     bool reorder,
     unsigned (*hash_fn)(const void*),
     int (*cmp_fn)(const void*, const void*)
-)
+) :
+    default_value(def), num_bins(0), num_entries(0), max_density(density),
+    reorder_flag(reorder), grow_factor(grow), bins(0), hash(hash_fn),
+    cmpr(cmp_fn)
 {
-    default_value = def;
-    hash          = hash_fn;
-    num_entries   = 0;
-    max_density   = density;
-    grow_factor   = grow;
-    reorder_flag  = reorder;
-
     if (size <= 0)
         size = PHASH_DEFAULT_INIT_TABLE_SIZE;
     else if ((size % 2) == 0)
@@ -99,8 +87,6 @@ sc_phash_base::sc_phash_base(
     bins = new sc_phash_elem*[size];
     for (int i = 0; i < size; ++i)
         bins[i] = 0;
-
-    set_cmpr_fn(cmp_fn);
 }
 
 void
@@ -195,7 +181,7 @@ sc_phash_base::find_entry_c( unsigned hash_val, const void* key, sc_phash_elem**
         last = &(ptr->next);
         ptr = *last;
     }
-        /* Bring to front */
+    /* Bring to front */
     if ((ptr != 0) && reorder_flag) {
         *last = ptr->next;
         ptr->next = bins[hash_val];
@@ -233,7 +219,7 @@ sc_phash_base::erase()
         }
         bins[i] = 0;
     }
-    assert(num_entries == 0);
+    sc_assert(num_entries == 0);
 }
 
 void
@@ -250,7 +236,7 @@ sc_phash_base::erase(void (*kfree)(void*))
         }
         bins[i] = 0;
     }
-    assert(num_entries == 0);
+    sc_assert(num_entries == 0);
 }
 
 void
@@ -337,7 +323,7 @@ sc_phash_base::remove( const void* k )
     if (ptr == 0)
         return 0;
 
-    assert(*last == ptr);
+    sc_assert(*last == ptr);
     *last = ptr->next;
     delete ptr;
     --num_entries;
@@ -361,7 +347,7 @@ sc_phash_base::remove( const void* k, void** pk, void** pc )
         *pc = ptr->contents;
     }
 
-    assert(*last == ptr);
+    sc_assert(*last == ptr);
     *last = ptr->next;
     delete ptr;
     --num_entries;
@@ -605,21 +591,21 @@ sc_phash_base_iter::set_contents( void* c )
 
 /****************************************************************************/
 
-unsigned 
+SC_API unsigned
 default_ptr_hash_fn(const void* p)
 {
-    return ((unsigned long)(p) >> 2) * 2654435789U;
+    return static_cast<unsigned>(((uintptr_t)(p) >> 2) * 2654435789U);
 
 }
 
-unsigned
+SC_API unsigned
 default_int_hash_fn(const void* p)
 {
-    return (unsigned long)(p) * 3141592661U;
+    return static_cast<unsigned>((uintptr_t)(p) * 3141592661U);
 }
 
 
-unsigned
+SC_API unsigned
 default_str_hash_fn(const void* p)
 {
     if (!p) return 0;
@@ -636,21 +622,51 @@ default_str_hash_fn(const void* p)
     return h;
 }
 
-int
+SC_API int
 sc_strhash_cmp( const void* a, const void* b )
 {
-    return strcmp( (const char*) a, (const char*) b );
+    return std::strcmp( (const char*) a, (const char*) b );
 }
 
-void*
+SC_API void*
 sc_strhash_kdup(const void* k)
 {
-    return strdup((const char*) k);
+    std::size_t size = std::strlen((const char*)k)+1;
+    char* result = new char[size];
+    std::copy(static_cast<const char*>(k), static_cast<const char*>(k) + size,
+              result);
+    return result;
 }
 
-void
+SC_API void
 sc_strhash_kfree(void* k)
 {
-    if (k) free((char*) k);
+    delete[] static_cast<char*>(k);
 }
  } // namespace sc_core
+
+// $Log: sc_hash.cpp,v $
+// Revision 1.5  2011/08/26 20:42:30  acg
+//  Andy Goodrich:
+//    (1) Replaced strdup with new and strcpy to eliminate issue with the
+//        Greenhills compiler.
+//    (2) Moved modification log to the end of the file to eliminate line
+//        skew when check-ins are done.
+//
+// Revision 1.4  2011/08/24 22:05:56  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.3  2011/05/05 17:46:04  acg
+//  Philip A. Hartmann: changes in "swap" support.
+//
+// Revision 1.2  2011/02/18 20:38:43  acg
+//  Andy Goodrich: Updated Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:06  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:53:10  acg
+// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
+// the source.
+
+// taf

@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,30 +23,14 @@
 
   Original Author: Andy Goodrich, Forte Design Systems, Inc.
 
+  CHANGE LOG AT END OF FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-
-
-// $Log: sc_temporary.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:39  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:11  acg
-// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
-// the source.
-//
 
 #ifndef SC_TEMPORARY_H
 #define SC_TEMPORARY_H
+#include "sysc/kernel/sc_cmnhdr.h"
+
+#include <cstddef>                // std::size_t
 
 namespace sc_core {
 
@@ -79,21 +65,21 @@ namespace sc_core {
 //   This is the non-initialized object instance constructor. It does not 
 //   allocate the heap storage, that is done by the initialize() method.
 //
-// sc_byte_heap()
+// sc_byte_heap(int)
 //   This is the initializing object instance constructor. It does allocates
 //   a heap of the specified number of bytes.
 //       heap_size = number of bytes to allocate for the heap.
 //------------------------------------------------------------------------------
-class sc_byte_heap {
+class SC_API sc_byte_heap {
   public:
     char*  m_bgn_p;  // Beginning of heap storage.
     char*  m_end_p;  // End of heap storage.
     char*  m_next_p; // Next heap location to be allocated.
 
-    inline char* allocate( int bytes_n )
+    inline char* allocate( std::size_t bytes_n )
     {
         char*   result_p;
-        bytes_n = (bytes_n + 7) & 0xfffffff8;
+        bytes_n = (bytes_n + 7) & ((std::size_t)(-8));
         result_p = m_next_p;
         m_next_p += bytes_n;
         if ( m_next_p >= m_end_p )
@@ -104,33 +90,33 @@ class sc_byte_heap {
         return result_p; 
     }
 
-    inline void initialize( int heap_size=0x100000 )
+    inline void initialize( std::size_t heap_size=0x100000 )
     {
-		if ( m_bgn_p ) delete [] m_bgn_p;
+        delete [] m_bgn_p;
         m_bgn_p = new char[heap_size];
         m_end_p = &m_bgn_p[heap_size];
         m_next_p = m_bgn_p;
     }
-    
-	inline unsigned int length()
+
+	inline std::size_t length()
 	{
-		return (unsigned int)(m_end_p - m_bgn_p);
+		return (std::size_t)(m_end_p - m_bgn_p);
 	}
 
-	inline sc_byte_heap()
+	inline sc_byte_heap() : 
+	    m_bgn_p(0), m_end_p(0), m_next_p(0)
 	{
-		m_bgn_p = 0;
 	}
 
-	inline sc_byte_heap( int heap_size )
+		inline sc_byte_heap( std::size_t heap_size ) :
+	    m_bgn_p(0), m_end_p(0), m_next_p(0)
 	{
-		m_bgn_p = 0;
 		initialize( heap_size );
 	}
 
 	inline ~sc_byte_heap()
 	{
-		if ( m_bgn_p ) delete [] m_bgn_p;
+		delete [] m_bgn_p;
 	}
 
 };
@@ -175,24 +161,24 @@ class sc_byte_heap {
 template<class T>
 class sc_vpool {
   protected:
-	int m_pool_i;	// Index of next entry to m_pool_m to provide.
-	T*  m_pool_p;	// Vector of temporaries.
-	int m_wrap;		// Mask to wrap vector index.
+	std::size_t m_pool_i;	// Index of next entry to m_pool_m to provide.
+	T*          m_pool_p;	// Vector of temporaries.
+	std::size_t m_wrap;		// Mask to wrap vector index.
 
   public:
 	inline sc_vpool( int log2, T* pool_p=0 );
 	inline ~sc_vpool();
 	inline T* allocate();
 	inline void reset();
-	inline int size();
+	inline std::size_t size();
 };
 
 template<class T> sc_vpool<T>::sc_vpool( int log2, T* pool_p )
+  : m_pool_i( 0 )
+  , m_pool_p( pool_p ? pool_p : new T[static_cast<std::size_t>(1) << log2] )
+  , m_wrap( ~(static_cast<std::size_t>(-1) << log2) )
 {
 	// if ( log2 > 32 ) SC_REPORT_ERROR(SC_ID_POOL_SIZE_, "");
-	m_pool_i = 0;
-	m_pool_p = pool_p ? pool_p : new T[1 << log2];
-	m_wrap = ~(-1 << log2);
 }
 
 template<class T> sc_vpool<T>::~sc_vpool()
@@ -214,14 +200,30 @@ template<class T> void sc_vpool<T>::reset()
 	m_pool_i = 0;
 }
 
-template<class T> int sc_vpool<T>::size()
+template<class T> std::size_t sc_vpool<T>::size()
 {
 	return m_wrap + 1;
 }
 
 } // namespace sc_core
 
+// $Log: sc_temporary.h,v $
+// Revision 1.4  2011/08/26 20:46:19  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.3  2011/08/24 22:05:56  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.2  2011/02/18 20:38:44  acg
+//  Andy Goodrich: Updated Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:06  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:53:11  acg
+// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
+// the source.
+//
+
 #endif // SC_TEMPORARY_H
-
-
-

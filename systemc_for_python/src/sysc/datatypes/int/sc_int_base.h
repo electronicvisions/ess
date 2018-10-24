@@ -1,32 +1,30 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
 /*****************************************************************************
 
-  sc_int_base.h -- A sc_int is a signed integer whose length is less than the
-              machine's native integer length. We provide two implementations
-              (i) sc_int with length between 1 - 64, and (ii) sc_int with
-              length between 1 - 32. Implementation (i) is the default
-              implementation, while implementation (ii) can be used only if
-              the class library is compiled with -D_32BIT_. Unlike arbitrary
-              precision, arithmetic and bitwise operations are performed
-              using the native types (hence capped at 32/64 bits). The sc_int
-              integer is useful when the user does not need arbitrary
-              precision and the performance is superior to
+  sc_int_base.h -- A signed integer whose length is less than 64 bit.
+
+              Unlike arbitrary precision, arithmetic and bitwise operations
+              are performed using the native types (hence capped at 64 bits).
+              The sc_int integer is useful when the user does not need
+              arbitrary precision and the performance is superior to
               sc_bigint/sc_biguint.
 
   Original Author: Amit Rao, Synopsys, Inc.
@@ -50,8 +48,18 @@
  *****************************************************************************/
 
 // $Log: sc_int_base.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.3  2011/08/24 22:05:45  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.2  2011/02/18 20:19:15  acg
+//  Andy Goodrich: updating Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
+//
+// Revision 1.4  2006/05/08 17:50:01  acg
+//   Andy Goodrich: Added David Long's declarations for friend operators,
+//   functions, and methods, to keep the Microsoft compiler happy.
 //
 // Revision 1.3  2006/01/13 18:49:31  acg
 // Added $Log command so that CVS check in comments are reproduced in the
@@ -61,13 +69,13 @@
 #ifndef SC_INT_BASE_H
 #define SC_INT_BASE_H
 
+#include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/kernel/sc_object.h"
 #include "sysc/datatypes/misc/sc_value_base.h"
 #include "sysc/datatypes/int/sc_int_ids.h"
 #include "sysc/datatypes/int/sc_length_param.h"
 #include "sysc/datatypes/int/sc_nbdefs.h"
 #include "sysc/datatypes/int/sc_uint_base.h"
-#include "sysc/utils/sc_iostream.h"
 #include "sysc/utils/sc_temporary.h"
 
 
@@ -95,8 +103,17 @@ class sc_fxval_fast;
 class sc_fxnum;
 class sc_fxnum_fast;
 
+} // namespace sc_dt
 
-extern const uint_type mask_int[SC_INTWIDTH][SC_INTWIDTH];
+// extern template instantiations
+namespace sc_core {
+SC_API_TEMPLATE_DECL_ sc_vpool<sc_dt::sc_int_bitref>;
+SC_API_TEMPLATE_DECL_ sc_vpool<sc_dt::sc_int_subref>;
+} // namespace sc_core
+
+namespace sc_dt {
+
+extern SC_API const uint_type mask_int[SC_INTWIDTH][SC_INTWIDTH];
 
 // friend operator declarations
     // relational operators
@@ -120,7 +137,7 @@ extern const uint_type mask_int[SC_INTWIDTH][SC_INTWIDTH];
 //  Proxy class for sc_int bit selection (r-value only).
 // ----------------------------------------------------------------------------
 
-class sc_int_bitref_r : public sc_value_base
+class SC_API sc_int_bitref_r : public sc_value_base
 {
     friend class sc_int_base;
 
@@ -128,7 +145,7 @@ protected:
 
     // constructor
 
-    sc_int_bitref_r()
+    sc_int_bitref_r() : sc_value_base(), m_index(), m_obj_p()
         {}
 
     // initializer for sc_core::sc_vpool:
@@ -144,7 +161,7 @@ public:
     // copy constructor
 
     sc_int_bitref_r( const sc_int_bitref_r& a ) :
-        m_index(a.m_index), m_obj_p(a.m_obj_p)
+        sc_value_base(a), m_index(a.m_index), m_obj_p(a.m_obj_p)
         {}
 
     // destructor
@@ -241,7 +258,7 @@ operator << ( ::std::ostream&, const sc_int_bitref_r& );
 //  Proxy class for sc_int bit selection (r-value and l-value).
 // ----------------------------------------------------------------------------
 
-class sc_int_bitref
+class SC_API sc_int_bitref
     : public sc_int_bitref_r
 {
     friend class sc_int_base;
@@ -250,7 +267,7 @@ class sc_int_bitref
 
     // constructor
 
-    sc_int_bitref()
+    sc_int_bitref() : sc_int_bitref_r()
       {}
 
 
@@ -301,7 +318,7 @@ operator >> ( ::std::istream&, sc_int_bitref& );
 //  Proxy class for sc_int part selection (r-value only).
 // ----------------------------------------------------------------------------
 
-class sc_int_subref_r : public sc_value_base
+class SC_API sc_int_subref_r : public sc_value_base
 {
     friend class sc_int_base;
     friend class sc_int_signal;
@@ -311,7 +328,7 @@ protected:
 
     // constructor
 
-    sc_int_subref_r()
+    sc_int_subref_r() : sc_value_base(), m_left(0), m_obj_p(0), m_right(0)
         {}
 
     // initializer for sc_core::sc_vpool:
@@ -328,7 +345,8 @@ public:
     // copy constructor
 
     sc_int_subref_r( const sc_int_subref_r& a ) :
-        m_left( a.m_left ), m_obj_p( a.m_obj_p ), m_right( a.m_right )
+        sc_value_base(a), m_left( a.m_left ), m_obj_p( a.m_obj_p ),
+	m_right( a.m_right )
         {}
 
     // destructor
@@ -434,7 +452,7 @@ operator << ( ::std::ostream&, const sc_int_subref_r& );
 //  Proxy class for sc_int part selection (r-value and l-value).
 // ----------------------------------------------------------------------------
 
-class sc_int_subref
+class SC_API sc_int_subref
     : public sc_int_subref_r
 {
     friend class sc_int_base;
@@ -444,7 +462,7 @@ class sc_int_subref
 protected:
 
     // constructor
-    sc_int_subref()
+    sc_int_subref() : sc_int_subref_r()
         {}
 
 public:
@@ -523,7 +541,7 @@ operator >> ( ::std::istream&, sc_int_subref& );
 //  Base class for sc_int.
 // ----------------------------------------------------------------------------
 
-class sc_int_base : public sc_value_base
+class SC_API sc_int_base : public sc_value_base
 {
     friend class sc_int_bitref_r;
     friend class sc_int_bitref;
@@ -569,7 +587,8 @@ public:
 	{ check_length(); extend_sign(); }
 
     sc_int_base( const sc_int_base& a )
-	: m_val( a.m_val ), m_len( a.m_len ), m_ulen( a.m_ulen )
+	: sc_value_base(a), m_val( a.m_val ), m_len( a.m_len ),
+	  m_ulen( a.m_ulen )
 	{}
 
     explicit sc_int_base( const sc_int_subref_r& a )
@@ -830,13 +849,11 @@ public:
 	{ return (double) m_val; }
 
 
-#ifndef _32BIT_
     long long_low() const
 	{ return (long) (m_val & UINT64_32ONES); }
 
     long long_high() const
 	{ return (long) ((m_val >> 32) & UINT64_32ONES); }
-#endif
 
 
     // explicit conversion to character string
@@ -1361,7 +1378,6 @@ operator >> ( ::std::istream& is, sc_int_base& a )
 }
 
 } // namespace sc_dt
-
 
 #endif
 

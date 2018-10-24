@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,25 +23,9 @@
 
   Original Author: Stan Y. Liao, Synopsys, Inc.
 
+  CHANGE LOG AT END OF FILE
  *****************************************************************************/
 
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
- *****************************************************************************/
-// $Log: sc_mempool.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:39  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:10  acg
-// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
-// the source.
-//
 
 
 
@@ -61,9 +47,12 @@ static const char* dont_use_envstring = "SYSTEMC_MEMPOOL_DONT_USE";
 static bool use_default_new = false;
 
 
-#include <stdio.h>
+#include <cstdio>
 #include <cstdlib>
+#include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/utils/sc_mempool.h"
+
+using std::printf;
 
 namespace sc_core {
 
@@ -80,7 +69,7 @@ namespace sc_core {
 //  block becomes the head of <block_list>.
 
 
-class sc_allocator {
+class SC_API sc_allocator {
     friend class sc_mempool;
 
 public:
@@ -111,17 +100,10 @@ private:
 };
 
 sc_allocator::sc_allocator( int blksz, int cellsz )
-{
-    cell_size = cellsz;
-    block_size = sizeof(link) + (((blksz - 1) / cellsz) + 1) * cellsz;
-    block_list = 0;
-    free_list = 0;
-    next_avail = 0;
-
-    total_alloc = 0;
-    total_freed = 0;
-    free_list_alloc = 0;
-}
+  : block_size(sizeof(link) + (((blksz - 1) / cellsz) + 1) * cellsz),
+    cell_size(cellsz), block_list(0), free_list(0), next_avail(0),
+    total_alloc(0), total_freed(0), free_list_alloc(0)
+{}
 
 sc_allocator::~sc_allocator()
 {
@@ -150,7 +132,7 @@ sc_allocator::allocate()
         return result;
     }
     else {  // (next_avail == 0)
-        link* new_block = (link*) malloc(block_size);  // need alignment?
+        link* new_block = (link*) std::malloc(block_size);  // need alignment?
         new_block->next = (link*) block_list;
         block_list = (char*) new_block;
         result = (block_list + sizeof(link));
@@ -214,7 +196,7 @@ static const int cell_size_to_allocator[] = {
 };
 
 
-class sc_mempool_int {
+class SC_API sc_mempool_int {
     friend class sc_mempool;
 
 public:
@@ -240,7 +222,8 @@ compute_use_default_new()
     return (e != 0) && (atoi(e) != 0);
 }
 
-sc_mempool_int::sc_mempool_int(int blksz, int npools, int incr)
+sc_mempool_int::sc_mempool_int(int blksz, int npools, int incr) :
+    allocators(0), num_pools(0), increment(0), max_size(0)
 {
     use_default_new = compute_use_default_new();
     if (! use_default_new) {
@@ -335,3 +318,23 @@ sc_mempool::display_statistics()
 }
 
 } // namespace sc_core
+
+// $Log: sc_mempool.cpp,v $
+// Revision 1.4  2011/08/26 20:46:18  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.3  2011/08/24 22:05:56  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.2  2011/02/18 20:38:44  acg
+//  Andy Goodrich: Updated Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:06  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:53:10  acg
+// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
+// the source.
+
+// taf

@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -34,8 +36,14 @@
  *****************************************************************************/
 
 // $Log: sc_bv_base.h,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.3  2011/08/26 22:32:00  acg
+//  Torsten Maehne: added parentheses to make opearator ordering more obvious.
+//
+// Revision 1.2  2011/08/15 16:43:24  acg
+//  Torsten Maehne: changes to remove unused argument warnings.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:04  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:53:53  acg
 // Andy Goodrich: added $Log command so that CVS comments are reproduced in
@@ -65,7 +73,7 @@ class sc_bv_base;
 //  Arbitrary size bit vector base class.
 // ----------------------------------------------------------------------------
 
-class sc_bv_base
+class SC_API sc_bv_base
     : public sc_proxy<sc_bv_base>
 {
     friend class sc_lv_base;
@@ -79,7 +87,8 @@ public:
 
     // typedefs
 
-    typedef sc_proxy<sc_bv_base> base_type;
+    typedef sc_proxy<sc_bv_base>  base_type;
+    typedef base_type::value_type value_type;
 
 
     // constructors
@@ -128,7 +137,7 @@ public:
     // destructor
 
     virtual ~sc_bv_base()
-	{ if( m_data != 0 ) delete [] m_data; }
+	{ delete [] m_data; }
 
 
     // assignment operators
@@ -179,44 +188,6 @@ public:
 	{ base_type::assign_( a ); return *this; }
 
 
-#if 0
-
-    // bitwise complement
-
-    sc_bv_base& b_not();
-
-    const sc_bv_base operator ~ () const
-	{ sc_bv_base a( *this ); return a.b_not(); }
-
-
-    // bitwise left shift
-
-    sc_bv_base& operator <<= ( int n );
-
-    const sc_bv_base operator << ( int n ) const
-	{ sc_bv_base a( *this ); return ( a <<= n ); }
-
-
-    // bitwise right shift
-
-    sc_bv_base& operator >>= ( int n );
-
-    const sc_bv_base operator >> ( int n ) const
-	{ sc_bv_base a( *this ); return ( a >>= n ); }
-
-
-    // bitwise left rotate
-
-    sc_bv_base& lrotate( int n );
-
-
-    // bitwise right rotate
-
-    sc_bv_base& rrotate( int n );
-
-#endif
-
-
     // common methods
 
     int length() const
@@ -225,8 +196,8 @@ public:
     int size() const
 	{ return m_size; }
 
-    sc_logic_value_t get_bit( int i ) const;
-    void set_bit( int i, sc_logic_value_t value );
+    value_type get_bit( int i ) const;
+    void set_bit( int i, value_type value );
 
     sc_digit get_word( int i ) const
 	{ return m_data[i]; }
@@ -234,7 +205,7 @@ public:
     void set_word( int i, sc_digit w )
 	{ m_data[i] = w; }
 
-    sc_digit get_cword( int ) const
+    sc_digit get_cword( int /*i*/ ) const
 	{ return SC_DIGIT_ZERO; }
 
     void set_cword( int i, sc_digit w );
@@ -286,17 +257,17 @@ rrotate( const sc_bv_base& x, int n )
 // common methods
 
 inline
-sc_logic_value_t
+sc_bv_base::value_type
 sc_bv_base::get_bit( int i ) const
 {
     int wi = i / SC_DIGIT_SIZE;
     int bi = i % SC_DIGIT_SIZE;
-    return sc_logic_value_t( m_data[wi] >> bi & SC_DIGIT_ONE );
+    return value_type( (m_data[wi] >> bi) & SC_DIGIT_ONE );
 }
 
 inline
 void
-sc_bv_base::set_bit( int i, sc_logic_value_t value )
+sc_bv_base::set_bit( int i, value_type value )
 {
     int wi = i / SC_DIGIT_SIZE;
     int bi = i % SC_DIGIT_SIZE;
@@ -308,7 +279,7 @@ sc_bv_base::set_bit( int i, sc_logic_value_t value )
 
 inline
 void
-sc_bv_base::set_cword( int , sc_digit w )
+sc_bv_base::set_cword( int /*i*/, sc_digit w )
 {
     if( w ) {
 	SC_REPORT_WARNING( sc_core::SC_ID_SC_BV_CANNOT_CONTAIN_X_AND_Z_, 0 );

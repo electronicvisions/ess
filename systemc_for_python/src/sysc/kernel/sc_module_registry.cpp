@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -22,31 +24,9 @@
 
   Original Author: Martin Janssen, Synopsys, Inc., 2001-05-21
 
+  CHANGE LOG AT THE END OF THE FILE
  *****************************************************************************/
 
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date: Andy Goodrich, Forte
-                               Bishnupriya Bhattacharya, Cadence Design Systems,
-                               25 August, 2003
-  Description of Modification: phase callbacks
-
- *****************************************************************************/
-
-
-// $Log: sc_module_registry.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:37  acg
-// SystemC 2.2
-//
-// Revision 1.4  2006/01/26 21:04:54  acg
-//  Andy Goodrich: deprecation message changes and additional messages.
-//
-// Revision 1.3  2006/01/13 18:44:30  acg
-// Added $Log to record CVS changes into the source.
-//
 
 #include "sysc/kernel/sc_kernel_ids.h"
 #include "sysc/kernel/sc_module.h"
@@ -66,15 +46,22 @@ void
 sc_module_registry::insert( sc_module& module_ )
 {
     if( sc_is_running() ) {
-	SC_REPORT_ERROR( SC_ID_INSERT_MODULE_, "simulation running" );
+        SC_REPORT_ERROR( SC_ID_INSERT_MODULE_, "simulation running" );
+        return;
+    }
+
+    if( m_simc->elaboration_done() ) {
+        SC_REPORT_ERROR( SC_ID_INSERT_MODULE_, "elaboration done" );
+        return;
     }
 
 #ifdef DEBUG_SYSTEMC
     // check if module_ is already inserted
     for( int i = size() - 1; i >= 0; -- i ) {
-	if( &module_ == m_module_vec[i] ) {
-	    SC_REPORT_ERROR( SC_ID_INSERT_MODULE_, "already inserted" );
-	}
+        if( &module_ == m_module_vec[i] ) {
+            SC_REPORT_ERROR( SC_ID_INSERT_MODULE_, "already inserted" );
+            return;
+        }
     }
 #endif
 
@@ -92,19 +79,20 @@ sc_module_registry::remove( sc_module& module_ )
 	}
     }
     if( i == size() ) {
-	SC_REPORT_ERROR( SC_ID_REMOVE_MODULE_, 0 );
+        SC_REPORT_ERROR( SC_ID_REMOVE_MODULE_, 0 );
+        return;
     }
 
     // remove
-    m_module_vec[i] = m_module_vec[size() - 1];
-    m_module_vec.resize(m_module_vec.size()-1);
+    m_module_vec[i] = m_module_vec.back();
+    m_module_vec.pop_back();
 }
 
 
 // constructor
 
 sc_module_registry::sc_module_registry( sc_simcontext& simc_ )
-: m_simc( &simc_ )
+ : m_construction_done(0), m_module_vec(), m_simc( &simc_ )
 {}
 
 
@@ -115,12 +103,17 @@ sc_module_registry::~sc_module_registry()
 
 // called when construction is done
 
-void
+bool
 sc_module_registry::construction_done()
 {
-    for( int i = 0; i < size(); ++ i ) {
-	m_module_vec[i]->construction_done();
+    if( size() == m_construction_done )
+        // nothing has been updated
+        return true;
+
+    for( ; m_construction_done < size(); ++m_construction_done ) {
+        m_module_vec[m_construction_done]->construction_done();
     }
+    return false;
 }
 
 // called when elaboration is done
@@ -155,4 +148,41 @@ sc_module_registry::simulation_done()
 }
 
 } // namespace sc_core
+
+// $Log: sc_module_registry.cpp,v $
+// Revision 1.8  2011/08/26 20:46:10  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.7  2011/08/24 22:05:51  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.6  2011/05/09 04:07:49  acg
+//  Philipp A. Hartmann:
+//    (1) Restore hierarchy in all phase callbacks.
+//    (2) Ensure calls to before_end_of_elaboration.
+//
+// Revision 1.5  2011/02/18 20:27:14  acg
+//  Andy Goodrich: Updated Copyrights.
+//
+// Revision 1.4  2011/02/14 17:51:40  acg
+//  Andy Goodrich: proper pushing an poppping of the module hierarchy for
+//  start_of_simulation() and end_of_simulation.
+//
+// Revision 1.3  2011/02/13 21:47:37  acg
+//  Andy Goodrich: update copyright notice.
+//
+// Revision 1.2  2008/05/22 17:06:26  acg
+//  Andy Goodrich: updated copyright notice to include 2008.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
+//
+// Revision 1.4  2006/01/26 21:04:54  acg
+//  Andy Goodrich: deprecation message changes and additional messages.
+//
+// Revision 1.3  2006/01/13 18:44:30  acg
+// Added $Log to record CVS changes into the source.
+//
+
 // Taf!

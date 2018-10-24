@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -37,6 +39,17 @@
  *****************************************************************************/
 
 // $Log: sc_lv_base.h,v $
+// Revision 1.4  2011/08/26 22:32:00  acg
+//  Torsten Maehne: added parentheses to make opearator ordering more obvious.
+//
+// Revision 1.3  2010/01/27 19:41:29  acg
+//  Andy Goodrich: fix 8 instances of sc_concref constructor invocations
+//  that failed to indicate that their arguments should be freed when the
+//  object was freed.
+//
+// Revision 1.2  2009/02/28 00:26:14  acg
+//  Andy Goodrich: bug fixes.
+//
 // Revision 1.2  2007/03/14 17:47:49  acg
 //  Andy Goodrich: Formatting.
 //
@@ -71,7 +84,7 @@ class sc_lv_base;
 //  Arbitrary size logic vector base class.
 // ----------------------------------------------------------------------------
 
-class sc_lv_base
+class SC_API sc_lv_base
     : public sc_proxy<sc_lv_base>
 {
     friend class sc_bv_base;
@@ -85,7 +98,8 @@ public:
 
     // typedefs
 
-    typedef sc_proxy<sc_lv_base> base_type;
+    typedef sc_proxy<sc_lv_base>  base_type;
+    typedef base_type::value_type value_type;
 
 
     // constructors
@@ -134,7 +148,7 @@ public:
     // destructor
 
     virtual ~sc_lv_base()
-	{ if( m_data != 0 ) delete [] m_data; }
+	{ delete [] m_data; }
 
 
     // assignment operators
@@ -184,50 +198,6 @@ public:
     sc_lv_base& operator = ( int64 a )
 	{ base_type::assign_( a ); return *this; }
 
-
-#if 0
-
-    // bitwise complement
-
-    sc_lv_base& b_not()
-	{ return sc_proxy<sc_lv_base>::b_not(); }
-
-    const sc_lv_base operator ~ () const
-	{ sc_lv_base a( *this ); return a.b_not(); }
-
-
-    // bitwise left shift
-
-    sc_lv_base& operator <<= ( int n )
-	{ return sc_proxy<sc_lv_base>::operator <<= ( n ); }
-
-    const sc_lv_base operator << ( int n ) const
-	{ sc_lv_base a( *this ); return ( a <<= n ); }
-
-
-    // bitwise right shift
-
-    sc_lv_base& operator >>= ( int n )
-	{ return sc_proxy<sc_lv_base>::operator >>= ( n ); }
-
-    const sc_lv_base operator >> ( int n ) const
-	{ sc_lv_base a( *this ); return ( a >>= n ); }
-
-
-    // bitwise left rotate
-
-    sc_lv_base& lrotate( int n )
-	{ return sc_proxy<sc_lv_base>::lrotate( n ); }
-
-
-    // bitwise right rotate
-
-    sc_lv_base& rrotate( int n )
-	{ return sc_proxy<sc_lv_base>::rrotate( n ); }
-
-#endif
-
-
     // common methods
 
     int length() const
@@ -236,8 +206,8 @@ public:
     int size() const
 	{ return m_size; }
 
-    sc_logic_value_t get_bit( int i ) const;
-    void set_bit( int i, sc_logic_value_t value );
+    value_type get_bit( int i ) const;
+    void set_bit( int i, value_type value );
 
     sc_digit get_word( int wi ) const
 	{ return m_data[wi]; }
@@ -247,14 +217,14 @@ public:
 	// an extend_sign on a concatenation uses the whole length of 
 	// the concatenation to determine how many words to set.
     void set_word( int wi, sc_digit w )
-	{ assert ( wi < m_size ); m_data[wi] = w; }
+	{ sc_assert ( wi < m_size ); m_data[wi] = w; }
 	 
 
     sc_digit get_cword( int wi ) const
 	{ return m_ctrl[wi]; }
 
     void set_cword( int wi, sc_digit w )
-	{ assert ( wi < m_size ); m_ctrl[wi] = w; }
+	{ sc_assert ( wi < m_size ); m_ctrl[wi] = w; }
 
     void clean_tail();
 
@@ -301,18 +271,18 @@ rrotate( const sc_lv_base& x, int n )
 
 
 inline
-sc_logic_value_t
+sc_lv_base::value_type
 sc_lv_base::get_bit( int i ) const
 {
     int wi = i / SC_DIGIT_SIZE;
     int bi = i % SC_DIGIT_SIZE;
-    return sc_logic_value_t( ( m_data[wi] >> bi & SC_DIGIT_ONE ) |
-			     (m_ctrl[wi] >> bi << 1 & SC_DIGIT_TWO ) );
+    return value_type( ((m_data[wi] >> bi) & SC_DIGIT_ONE) |
+			     (((m_ctrl[wi] >> bi) << 1) & SC_DIGIT_TWO) );
 }
 
 inline
 void
-sc_lv_base::set_bit( int i, sc_logic_value_t value )
+sc_lv_base::set_bit( int i, value_type value )
 {
     int wi = i / SC_DIGIT_SIZE; // word index
     int bi = i % SC_DIGIT_SIZE; // bit index
@@ -700,11 +670,9 @@ sc_proxy<X>::lrotate( int n )
 {
     X& x = back_cast();
     if( n < 0 ) {
-	char msg[BUFSIZ];
-	std::sprintf( msg,
-		 "left rotate operation is only allowed with positive "
-		 "rotate values, rotate value = %d", n );
-	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, msg );
+        sc_proxy_out_of_bounds( "left rotate operation is only allowed with "
+                                "positive rotate values, rotate value = ", n );
+        return x;
     }
     int len = x.length();
     n %= len;
@@ -739,11 +707,9 @@ sc_proxy<X>::rrotate( int n )
 {
     X& x = back_cast();
     if( n < 0 ) {
-	char msg[BUFSIZ];
-	std::sprintf( msg,
-		 "right rotate operation is only allowed with positive "
-		 "rotate values, rotate value = %d", n );
-	SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, msg );
+        sc_proxy_out_of_bounds( "right rotate operation is only allowed with "
+                                "positive rotate values, rotate value = ", n );
+        return x;
     }
     int len = x.length();
     n %= len;
@@ -867,7 +833,7 @@ sc_concref_r<sc_bitref_r<T>,sc_lv_base>
 operator , ( sc_bitref_r<T> a, const sc_logic& b )
 {
     return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ) );
+	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T>
@@ -881,20 +847,20 @@ operator , ( const sc_logic& a, sc_bitref_r<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_bitref_r<T>,sc_lv_base>
+sc_concref_r<sc_bitref_r<T>,sc_bv_base>
 operator , ( sc_bitref_r<T> a, bool b )
 {
-    return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ) );
+    return sc_concref_r<sc_bitref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_bitref_r<T> >
+sc_concref_r<sc_bv_base,sc_bitref_r<T> >
 operator , ( bool a, sc_bitref_r<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_bitref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_bitref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -922,7 +888,7 @@ sc_concref_r<sc_bitref_r<T>,sc_lv_base>
 concat( sc_bitref_r<T> a, const sc_logic& b )
 {
     return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ) );
+	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T>
@@ -936,20 +902,20 @@ concat( const sc_logic& a, sc_bitref_r<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_bitref_r<T>,sc_lv_base>
+sc_concref_r<sc_bitref_r<T>,sc_bv_base>
 concat( sc_bitref_r<T> a, bool b )
 {
-    return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ) );
+    return sc_concref_r<sc_bitref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_bitref_r<T> >
+sc_concref_r<sc_bv_base,sc_bitref_r<T> >
 concat( bool a, sc_bitref_r<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_bitref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_bitref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -979,7 +945,7 @@ sc_concref_r<sc_bitref_r<T>,sc_lv_base>
 operator , ( sc_bitref<T> a, const sc_logic& b )
 {
     return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ) );
+	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T>
@@ -993,20 +959,20 @@ operator , ( const sc_logic& a, sc_bitref<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_bitref_r<T>,sc_lv_base>
+sc_concref_r<sc_bitref_r<T>,sc_bv_base>
 operator , ( sc_bitref<T> a, bool b )
 {
-    return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ) );
+    return sc_concref_r<sc_bitref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_bitref_r<T> >
+sc_concref_r<sc_bv_base,sc_bitref_r<T> >
 operator , ( bool a, sc_bitref<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_bitref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_bitref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1034,7 +1000,7 @@ sc_concref_r<sc_bitref_r<T>,sc_lv_base>
 concat( sc_bitref<T> a, const sc_logic& b )
 {
     return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ) );
+	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T>
@@ -1048,20 +1014,20 @@ concat( const sc_logic& a, sc_bitref<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_bitref_r<T>,sc_lv_base>
+sc_concref_r<sc_bitref_r<T>,sc_bv_base>
 concat( sc_bitref<T> a, bool b )
 {
-    return sc_concref_r<sc_bitref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ) );
+    return sc_concref_r<sc_bitref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_bitref_r<T> >
+sc_concref_r<sc_bv_base,sc_bitref_r<T> >
 concat( bool a, sc_bitref<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_bitref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_bitref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 #endif
@@ -1113,20 +1079,20 @@ operator , ( const sc_logic& a, sc_subref_r<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 operator , ( sc_subref_r<T> a, bool b )
 {
-    return sc_concref_r<sc_subref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_subref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 operator , ( bool a, sc_subref_r<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_subref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_subref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1168,20 +1134,20 @@ concat( const sc_logic& a, sc_subref_r<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 concat( sc_subref_r<T> a, bool b )
 {
-    return sc_concref_r<sc_subref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_subref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 concat( bool a, sc_subref_r<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_subref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_subref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1225,20 +1191,20 @@ operator , ( const sc_logic& a, sc_subref<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 operator , ( sc_subref<T> a, bool b )
 {
-    return sc_concref_r<sc_subref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_subref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 operator , ( bool a, sc_subref<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_subref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_subref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1280,20 +1246,20 @@ concat( const sc_logic& a, sc_subref<T> b )
 
 template <class T>
 inline
-sc_concref_r<sc_subref_r<T>,sc_lv_base>
+sc_concref_r<sc_subref_r<T>,sc_bv_base>
 concat( sc_subref<T> a, bool b )
 {
-    return sc_concref_r<sc_subref_r<T>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_subref_r<T>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,sc_subref_r<T> >
+sc_concref_r<sc_bv_base,sc_subref_r<T> >
 concat( bool a, sc_subref<T> b )
 {
-    return sc_concref_r<sc_lv_base,sc_subref_r<T> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_subref_r<T> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 #endif
@@ -1390,20 +1356,20 @@ operator , ( const sc_logic& a, sc_concref_r<T1,T2> b )
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 operator , ( sc_concref_r<T1,T2> a, bool b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 operator , ( bool a, sc_concref_r<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1412,8 +1378,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 concat( sc_concref_r<T1,T2> a, const char* b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b ), 3 );
 }
 
 template <class T1, class T2>
@@ -1421,8 +1387,8 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 concat( const char* a, sc_concref_r<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
@@ -1430,8 +1396,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 concat( sc_concref_r<T1,T2> a, const sc_logic& b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
@@ -1439,26 +1405,26 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 concat( const sc_logic& a, sc_concref_r<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a, 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a, 1 ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 concat( sc_concref_r<T1,T2> a, bool b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 concat( bool a, sc_concref_r<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1469,8 +1435,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 operator , ( sc_concref<T1,T2> a, const char* b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b ), 3 );
 }
 
 template <class T1, class T2>
@@ -1478,8 +1444,8 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 operator , ( const char* a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
@@ -1487,8 +1453,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 operator , ( sc_concref<T1,T2> a, const sc_logic& b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
@@ -1496,26 +1462,26 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 operator , ( const sc_logic& a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a, 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a, 1 ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 operator , ( sc_concref<T1,T2> a, bool b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 operator , ( bool a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 
@@ -1524,8 +1490,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 concat( sc_concref<T1,T2> a, const char* b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b ), 3 );
 }
 
 template <class T1, class T2>
@@ -1533,8 +1499,8 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 concat( const char* a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
@@ -1542,8 +1508,8 @@ inline
 sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
 concat( sc_concref<T1,T2> a, const sc_logic& b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( b, 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+        ( *a.clone(), *new sc_lv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
@@ -1551,26 +1517,26 @@ inline
 sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
 concat( const sc_logic& a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( a, 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+        ( *new sc_lv_base( a, 1 ), *b.clone(), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>
+sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
 concat( sc_concref<T1,T2> a, bool b )
 {
-    return sc_concref_r<sc_concref_r<T1,T2>,sc_lv_base>(
-	*a.clone(), *new sc_lv_base( sc_logic( b ), 1 ), 3 );
+    return sc_concref_r<sc_concref_r<T1,T2>,sc_bv_base>
+        ( *a.clone(), *new sc_bv_base( b, 1 ), 3 );
 }
 
 template <class T1, class T2>
 inline
-sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >
+sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
 concat( bool a, sc_concref<T1,T2> b )
 {
-    return sc_concref_r<sc_lv_base,sc_concref_r<T1,T2> >(
-	*new sc_lv_base( sc_logic( a ), 1 ), *b.clone(), 3 );
+    return sc_concref_r<sc_bv_base,sc_concref_r<T1,T2> >
+        ( *new sc_bv_base( a, 1 ), *b.clone(), 3 );
 }
 
 #endif
@@ -1590,8 +1556,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 operator , ( const sc_proxy<T>& a, const char* b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+      ( a.back_cast(), *new sc_lv_base( b ), 2 );
 }
 
 template <class T>
@@ -1599,8 +1565,8 @@ inline
 sc_concref_r<sc_lv_base,T>
 operator , ( const char* a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+      ( *new sc_lv_base( a ), b.back_cast(), 1 );
 }
 
 template <class T>
@@ -1608,8 +1574,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 operator , ( const sc_proxy<T>& a, const sc_logic& b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+      ( a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
 }
 
 template <class T>
@@ -1617,26 +1583,26 @@ inline
 sc_concref_r<sc_lv_base,T>
 operator , ( const sc_logic& a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a, 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+      ( *new sc_lv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 operator , ( const sc_proxy<T>& a, bool b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( sc_logic( b ), 1 ), 2 );
+    return sc_concref_r<T,sc_bv_base>
+        ( a.back_cast(), *new sc_bv_base( b, 1 ), 2 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 operator , ( bool a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( sc_logic( a ), 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_bv_base,T>
+      ( *new sc_bv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 
@@ -1645,8 +1611,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 concat( const sc_proxy<T>& a, const char* b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+      ( a.back_cast(), *new sc_lv_base( b ), 2 );
 }
 
 template <class T>
@@ -1654,8 +1620,8 @@ inline
 sc_concref_r<sc_lv_base,T>
 concat( const char* a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+      ( *new sc_lv_base( a ), b.back_cast(), 1 );
 }
 
 template <class T>
@@ -1663,8 +1629,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 concat( const sc_proxy<T>& a, const sc_logic& b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+      ( a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
 }
 
 template <class T>
@@ -1672,26 +1638,26 @@ inline
 sc_concref_r<sc_lv_base,T>
 concat( const sc_logic& a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a, 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+      ( *new sc_lv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 concat( const sc_proxy<T>& a, bool b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( sc_logic( b ), 1 ), 2 );
+    return sc_concref_r<T,sc_bv_base>
+      ( a.back_cast(), *new sc_bv_base( b, 1 ), 2 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 concat( bool a, const sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( sc_logic( a ), 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_bv_base,T>
+      ( *new sc_bv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 
@@ -1702,8 +1668,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 operator , ( sc_proxy<T>& a, const char* b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+      ( a.back_cast(), *new sc_lv_base( b ), 2 );
 }
 
 template <class T>
@@ -1711,8 +1677,8 @@ inline
 sc_concref_r<sc_lv_base,T>
 operator , ( const char* a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+        ( *new sc_lv_base( a ), b.back_cast(), 1 );
 }
 
 template <class T>
@@ -1720,8 +1686,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 operator , ( sc_proxy<T>& a, const sc_logic& b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+        ( a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
 }
 
 template <class T>
@@ -1729,26 +1695,26 @@ inline
 sc_concref_r<sc_lv_base,T>
 operator , ( const sc_logic& a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a, 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+        ( *new sc_lv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 operator , ( sc_proxy<T>& a, bool b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( sc_logic( b ), 1 ), 2 );
+    return sc_concref_r<T,sc_bv_base>
+        ( a.back_cast(), *new sc_bv_base( b, 1 ), 2 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 operator , ( bool a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( sc_logic( a ), 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_bv_base,T>
+        ( *new sc_bv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 
@@ -1757,8 +1723,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 concat( sc_proxy<T>& a, const char* b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+        ( a.back_cast(), *new sc_lv_base( b ), 2 );
 }
 
 template <class T>
@@ -1766,8 +1732,8 @@ inline
 sc_concref_r<sc_lv_base,T>
 concat( const char* a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+        ( *new sc_lv_base( a ), b.back_cast(), 1 );
 }
 
 template <class T>
@@ -1775,8 +1741,8 @@ inline
 sc_concref_r<T,sc_lv_base>
 concat( sc_proxy<T>& a, const sc_logic& b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
+    return sc_concref_r<T,sc_lv_base>
+        ( a.back_cast(), *new sc_lv_base( b, 1 ), 2 );
 }
 
 template <class T>
@@ -1784,29 +1750,33 @@ inline
 sc_concref_r<sc_lv_base,T>
 concat( const sc_logic& a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( a, 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_lv_base,T>
+        ( *new sc_lv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 template <class T>
 inline
-sc_concref_r<T,sc_lv_base>
+sc_concref_r<T,sc_bv_base>
 concat( sc_proxy<T>& a, bool b )
 {
-    return sc_concref_r<T,sc_lv_base>(
-	a.back_cast(), *new sc_lv_base( sc_logic( b ), 1 ), 2 );
+    return sc_concref_r<T,sc_bv_base>
+        ( a.back_cast(), *new sc_bv_base( b, 1 ), 2 );
 }
 
 template <class T>
 inline
-sc_concref_r<sc_lv_base,T>
+sc_concref_r<sc_bv_base,T>
 concat( bool a, sc_proxy<T>& b )
 {
-    return sc_concref_r<sc_lv_base,T>(
-	*new sc_lv_base( sc_logic( a ), 1 ), b.back_cast(), 1 );
+    return sc_concref_r<sc_bv_base,T>
+        ( *new sc_bv_base( a, 1 ), b.back_cast(), 1 );
 }
 
 #endif
+
+// extern template instantiations
+SC_API_TEMPLATE_DECL_ sc_proxy<sc_lv_base>;
+SC_API_TEMPLATE_DECL_ sc_proxy<sc_bv_base>;
 
 } // namespace sc_dt
 

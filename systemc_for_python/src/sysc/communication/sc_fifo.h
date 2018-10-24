@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,42 +23,8 @@
 
   Original Author: Martin Janssen, Synopsys, Inc., 2001-05-21
 
+  CHANGE LOG IS AT THE END OF THE FILE
  *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-    
- *****************************************************************************/
-//$Log: sc_fifo.h,v $
-//Revision 1.1.1.1  2006/12/15 20:31:35  acg
-//SystemC 2.2
-//
-//Revision 1.4  2006/01/24 20:46:31  acg
-//Andy Goodrich: changes to eliminate use of deprecated features. For instance,
-//using notify(SC_ZERO_TIME) in place of notify_delayed().
-//
-//Revision 1.3  2006/01/13 20:41:59  acg
-//Andy Goodrich: Changes to add port registration to the things that are
-//checked when SC_NO_WRITE_CHECK is not defined.
-//
-//Revision 1.2  2006/01/03 23:18:26  acg
-//Changed copyright to include 2006.
-//
-//Revision 1.1.1.1  2005/12/19 23:16:43  acg
-//First check in of SystemC 2.1 into its own archive.
-//
-//Revision 1.12  2005/09/15 23:01:51  acg
-//Added std:: prefix to appropriate methods and types to get around
-//issues with the Edison Front End.
-//
-//Revision 1.11  2005/06/10 22:43:55  acg
-//Added CVS change log annotation.
-//
 
 #ifndef SC_FIFO_H
 #define SC_FIFO_H
@@ -67,7 +35,6 @@
 #include "sysc/communication/sc_fifo_ifs.h"
 #include "sysc/kernel/sc_event.h"
 #include "sysc/kernel/sc_simcontext.h"
-#include "sysc/utils/sc_string.h"
 #include "sysc/tracing/sc_trace.h"
 #include <typeinfo>
 
@@ -90,12 +57,16 @@ public:
     // constructors
 
     explicit sc_fifo( int size_ = 16 )
-	: sc_prim_channel( sc_gen_unique_name( "fifo" ) )
-	{ init( size_ ); }
+      : sc_prim_channel( sc_gen_unique_name( "fifo" ) ),
+        m_data_read_event( sc_event::kernel_event, "read_event" ),
+        m_data_written_event( sc_event::kernel_event, "write_event" )
+      { init( size_ ); }
 
     explicit sc_fifo( const char* name_, int size_ = 16 )
-	: sc_prim_channel( name_ )
-	{ init( size_ ); }
+      : sc_prim_channel( name_ ),
+        m_data_read_event( sc_event::kernel_event, "read_event" ),
+        m_data_written_event( sc_event::kernel_event, "write_event" )
+      { init( size_ ); }
 
 
     // destructor
@@ -214,18 +185,30 @@ sc_fifo<T>::register_port( sc_port_base& port_,
 			    const char* if_typename_ )
 {
     std::string nm( if_typename_ );
-    if( nm == typeid( sc_fifo_in_if<T> ).name() ) {
-	// only one reader can be connected
-	if( m_reader != 0 ) {
-	    SC_REPORT_ERROR( SC_ID_MORE_THAN_ONE_FIFO_READER_, 0 );
-	}
-	m_reader = &port_;
-    } else {  // nm == typeid( sc_fifo_out_if<T> ).name()
-	// only one writer can be connected
-	if( m_writer != 0 ) {
-	    SC_REPORT_ERROR( SC_ID_MORE_THAN_ONE_FIFO_WRITER_, 0 );
-	}
-	m_writer = &port_;
+    if( nm == typeid( sc_fifo_in_if<T> ).name() ||
+        nm == typeid( sc_fifo_blocking_in_if<T> ).name() 
+    ) {
+        // only one reader can be connected
+        if( m_reader != 0 ) {
+            SC_REPORT_ERROR( SC_ID_MORE_THAN_ONE_FIFO_READER_, 0 );
+            // may continue, if suppressed
+        }
+        m_reader = &port_;
+    } else if( nm == typeid( sc_fifo_out_if<T> ).name() ||
+               nm == typeid( sc_fifo_blocking_out_if<T> ).name()
+    ) {
+        // only one writer can be connected
+        if( m_writer != 0 ) {
+            SC_REPORT_ERROR( SC_ID_MORE_THAN_ONE_FIFO_WRITER_, 0 );
+            // may continue, if suppressed
+        }
+        m_writer = &port_;
+    }
+    else
+    {
+        SC_REPORT_ERROR( SC_ID_BIND_IF_TO_PORT_,
+                         "sc_fifo<T> port not recognized" );
+        // may continue, if suppressed
     }
 }
 
@@ -240,9 +223,8 @@ sc_fifo<T>::read( T& val_ )
     while( num_available() == 0 ) {
 	sc_core::wait( m_data_written_event );
     }
-    m_num_read ++;
-    buf_read( val_ );
-    request_update();
+    bool read_success = sc_fifo<T>::nb_read(val_);
+    sc_assert( read_success );
 }
 
 template <class T>
@@ -265,10 +247,12 @@ sc_fifo<T>::nb_read( T& val_ )
     if( num_available() == 0 ) {
 	return false;
     }
-    m_num_read ++;
-    buf_read( val_ );
-    request_update();
-    return true;
+    bool read_success = buf_read( val_ );
+    if( SC_LIKELY_(read_success) ) {
+        m_num_read ++;
+        request_update();
+    }
+    return read_success;
 }
 
 
@@ -282,9 +266,8 @@ sc_fifo<T>::write( const T& val_ )
     while( num_free() == 0 ) {
 	sc_core::wait( m_data_read_event );
     }
-    m_num_written ++;
-    buf_write( val_ );
-    request_update();
+    bool write_success = sc_fifo<T>::nb_write(val_);
+    sc_assert( write_success );
 }
 
 // non-blocking write
@@ -297,29 +280,30 @@ sc_fifo<T>::nb_write( const T& val_ )
     if( num_free() == 0 ) {
 	return false;
     }
-    m_num_written ++;
-    buf_write( val_ );
-    request_update();
-    return true;
+    bool write_success = buf_write( val_ );
+    if( SC_LIKELY_(write_success) ) {
+        m_num_written ++;
+        request_update();
+    }
+    return write_success;
 }
 
 
 template <class T>
 inline
 void
-#if !defined(DEBUG_SYSTEMC)
-sc_fifo<T>::trace( sc_trace_file* ) const {}
-#else
 sc_fifo<T>::trace( sc_trace_file* tf ) const
 {
+    (void) tf; /* ignore potentially unused parameter */
+#if defined(DEBUG_SYSTEMC)
     char buf[32];
     std::string nm = name();
     for( int i = 0; i < m_size; ++ i ) {
 	std::sprintf( buf, "_%d", i );
 	sc_trace( tf, m_buf[i], nm + buf );
     }
-}
 #endif
+}
 
 
 template <class T>
@@ -397,7 +381,8 @@ void
 sc_fifo<T>::buf_init( int size_ )
 {
     if( size_ <= 0 ) {
-	SC_REPORT_ERROR( SC_ID_INVALID_FIFO_SIZE_, 0 );
+        SC_REPORT_ERROR( SC_ID_INVALID_FIFO_SIZE_, 0 );
+        return;
     }
     m_size = size_;
     m_buf = new T[m_size];
@@ -429,6 +414,7 @@ sc_fifo<T>::buf_read( T& val_ )
 	return false;
     }
     val_ = m_buf[m_ri];
+    m_buf[m_ri] = T(); // clear entry for boost::shared_ptr, et al.
     m_ri = ( m_ri + 1 ) % m_size;
     m_free ++;
     return true;
@@ -447,6 +433,49 @@ operator << ( ::std::ostream& os, const sc_fifo<T>& a )
 }
 
 } // namespace sc_core
+
+//$Log: sc_fifo.h,v $
+//Revision 1.6  2011/08/26 20:45:40  acg
+// Andy Goodrich: moved the modification log to the end of the file to
+// eliminate source line number skew when check-ins are done.
+//
+//Revision 1.5  2011/03/23 16:17:22  acg
+// Andy Goodrich: hide the sc_events that are kernel related.
+//
+//Revision 1.4  2011/02/18 20:23:45  acg
+// Andy Goodrich: Copyright update.
+//
+//Revision 1.3  2009/10/14 19:05:40  acg
+// Andy Goodrich: added check for blocking interfaces in addition to the
+// combined blocking/nonblocking interface.
+//
+//Revision 1.2  2009/05/22 16:06:24  acg
+// Andy Goodrich: process control updates.
+//
+//Revision 1.1.1.1  2006/12/15 20:20:04  acg
+//SystemC 2.3
+//
+//Revision 1.4  2006/01/24 20:46:31  acg
+//Andy Goodrich: changes to eliminate use of deprecated features. For instance,
+//using notify(SC_ZERO_TIME) in place of notify_delayed().
+//
+//Revision 1.3  2006/01/13 20:41:59  acg
+//Andy Goodrich: Changes to add port registration to the things that are
+//checked when SC_NO_WRITE_CHECK is not defined.
+//
+//Revision 1.2  2006/01/03 23:18:26  acg
+//Changed copyright to include 2006.
+//
+//Revision 1.1.1.1  2005/12/19 23:16:43  acg
+//First check in of SystemC 2.1 into its own archive.
+//
+//Revision 1.12  2005/09/15 23:01:51  acg
+//Added std:: prefix to appropriate methods and types to get around
+//issues with the Edison Front End.
+//
+//Revision 1.11  2005/06/10 22:43:55  acg
+//Added CVS change log annotation.
+//
 
 #endif
 

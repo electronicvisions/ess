@@ -1,4 +1,47 @@
-* SystemC 2.2 (this release)
+* SystemC 2.3.2
+  Release of SystemC 2.3.2
+  - Includes TLM 2.0.4
+  - Extended hierarchical name registry
+  - Improved synchronization mechanism with external processes
+  - Improved sc_time conversions and operations
+  - Improved error and exception handling
+  - Improved VCD tracing support, including hierarchical scopes, events and time values
+  - New template-independent interfaces for TLM-2.0 sockets
+  - New optionally bounds TLM-2.0 convenience sockets
+  - Bug fixes, code cleanup.
+
+* SystemC 2.3.2_pub_rev_20170223
+  Public-review release of SystemC 2.3.2
+  - Includes TLM 2.0.4_pub_rev_20170223
+  - Initial support for C++11/14.
+  - Windows DLL support.
+  - Cmake build system (experimental)
+  - Bug fixes, code cleanup.
+  - Some minor new features.
+
+* SystemC 2.3.1a
+  Relicensed under Apache License, Version 2.0.
+  No functional changes.
+
+* SystemC 2.3.1
+  Release of SystemC 2.3.1
+  - Includes TLM-2.0.3
+  - Bug fixes.
+  - Code cleanup.
+  - Some experimental new features.
+
+* SystemC 2.3.0
+  Release of SystemC 2.3.0
+  - Compliance to IEEE Std 1666-2011
+  - Per LRM, includes TLM-2.0.2
+  - Bug fixes.
+  - Code cleanup.
+
+* SystemC 2.2
+  Production release of SystemC 2.2
+  - Compliance to IEEE Std 1666-2005
+
+* SystemC 2.2 Beta
   Beta release of SystemC 2.2
   - Bug fixes.
   - Code cleanup.
@@ -6,7 +49,7 @@
     o Compliance with the IEEE 1666 SystemC Language reference module.
   - Platforms and compilers supported (added since 2.1):
     o Support for 64-bit Linux systems gcc-3.4.3.
-    o Linux with GNU C++ compiler versions gcc-3.4.5 and gcc-4.1.0.
+    o Linux with GNU C++ compiler version gcc-4.0.1.
     o MacOS X with GNU C++ compiler version gcc-4.0.0.
 
 * SystemC 2.1 

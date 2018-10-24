@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -36,22 +38,97 @@
 
 
 // $Log: sc_nbutils.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:36  acg
-// SystemC 2.2
+// Revision 1.4  2011/08/24 22:05:46  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.3  2011/02/18 20:19:15  acg
+//  Andy Goodrich: updating Copyright notice.
+//
+// Revision 1.2  2007/11/04 21:26:40  acg
+//  Andy Goodrich: added a buffer to the allocation of the q array to address
+//  an issue with references outside the array by 1 byte detected by valgrind.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:05  acg
+// SystemC 2.3
 //
 // Revision 1.3  2006/01/13 18:49:32  acg
 // Added $Log command so that CVS check in comments are reproduced in the
 // source.
 //
 
-#include <ctype.h>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <sstream>
+
 #include "sysc/datatypes/int/sc_int_ids.h"
 #include "sysc/datatypes/int/sc_nbutils.h"
 #include "sysc/kernel/sc_macros.h"
 
 
-namespace sc_dt
+namespace sc_dt {
+
+// only used within vec_from_str (non-standard, deprecated)
+static inline void
+is_valid_base(sc_numrep base)
 {
+  switch (base) {
+    case SC_NOBASE: case SC_BIN:
+    case SC_OCT: case SC_DEC:
+    case SC_HEX:
+        break;
+    case SC_BIN_US: case SC_BIN_SM:
+    case SC_OCT_US: case SC_OCT_SM:
+    case SC_HEX_US: case SC_HEX_SM:
+    case SC_CSD:
+      SC_REPORT_ERROR( sc_core::SC_ID_NOT_IMPLEMENTED_,
+                       "is_valid_base( sc_numrep base ) : "
+                       "bases SC_CSD, or ending in _US and _SM are not supported" );
+      break;
+    default:
+      std::stringstream msg;
+      msg << "is_valid_base( sc_numrep base ) : base = " << base
+          << " is not valid";
+      SC_REPORT_ERROR( sc_core::SC_ID_VALUE_NOT_VALID_, msg.str().c_str() );
+  }
+}
+
+// ----------------------------------------------------------------------------
+//  ENUM : sc_numrep
+//
+//  Enumeration of number representations for character string conversion.
+// ----------------------------------------------------------------------------
+
+const std::string
+to_string( sc_numrep numrep )
+{
+    switch( numrep )
+    {
+#   define CASE_ENUM2STR( Value ) \
+      case Value: return #Value
+
+      CASE_ENUM2STR(SC_DEC);
+
+      CASE_ENUM2STR(SC_BIN);
+      CASE_ENUM2STR(SC_BIN_US);
+      CASE_ENUM2STR(SC_BIN_SM);
+
+      CASE_ENUM2STR(SC_OCT);
+      CASE_ENUM2STR(SC_OCT_US);
+      CASE_ENUM2STR(SC_OCT_SM);
+
+      CASE_ENUM2STR(SC_HEX);
+      CASE_ENUM2STR(SC_HEX_US);
+      CASE_ENUM2STR(SC_HEX_SM);
+
+      CASE_ENUM2STR(SC_CSD);
+
+#   undef CASE_ENUM2STR
+
+    default:
+      return "unknown";
+    }
+}
 
 // ----------------------------------------------------------------------------
 //  SECTION: General utility functions.
@@ -108,7 +185,7 @@ fsm_move(char c, small_type &b, small_type &s, small_type &state)
 
   default:
     // Any other state is not possible.
-    assert((0 <= state) && (state <= 3));
+    sc_assert((0 <= state) && (state <= 3));
 
   } // switch
 
@@ -121,12 +198,12 @@ fsm_move(char c, small_type &b, small_type &s, small_type &state)
 // pointer to the first char after the point where b and s are
 // determined or where the end of v is reached. The input string v has
 // to be null terminated.
-const char 
-*get_base_and_sign(const char *v, small_type &b, small_type &s)
+const char *
+get_base_and_sign(const char *v, small_type &b, small_type &s)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert(v != NULL);
+  sc_assert(v != NULL);
 #endif
 
   const small_type STATE_START = 0;
@@ -152,22 +229,19 @@ const char
     }
   }
 
-#ifdef DEBUG_SYSTEMC
   // Test to see if the above loop executed more than it should
   // have. The max number of skipped chars is equal to the length of
   // the longest format specifier, e.g., "-0x".
-  assert(nskip <= 3);
-#endif
+  sc_assert(nskip <= 3);
 
   v += nskip;
 
   // Handles empty strings or strings without any digits after the
   // base or base and sign specifier.
   if (*v == '\0') { 
-      char msg[BUFSIZ];
-      std::sprintf( msg,
-	       "get_base_and_sign( const char* v, small_type&, small_type& ) : "
-	       "v = \"\" is not valid" );
+      static const char msg[]
+         = "get_base_and_sign( const char* v, small_type&, small_type& ) : "
+           "v = \"\" is not valid";
       SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
   }
 
@@ -203,10 +277,12 @@ void parse_binary_bits(
     if( src_p == 0 ) {
         SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_,
                          "character string is zero" );
+        return;
     }
     if( *src_p == 0 ) {
         SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_,
                          "character string is empty" );
+        return;
     }
 
 
@@ -246,7 +322,6 @@ void parse_binary_bits(
         if ( src_i < 0 ) 
         {
             src_n += BITS_PER_DIGIT;
-            src_i = 0;
             data = 0;
             ctrl = 0;
             for ( src_i = 0; src_i < src_n; src_i++ )
@@ -263,10 +338,10 @@ void parse_binary_bits(
                   case '0':                  break;
                   default:
                     {
-                        char msg[BUFSIZ];
-                        std::sprintf( msg, "character string '%s' is not valid", 
-                        src_p );
-                        SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg);
+                        std::stringstream msg;
+                        msg << "character string '" << src_p << "' is not valid";
+                        SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+                        return;
                     }
                     break;
                 }
@@ -295,10 +370,10 @@ void parse_binary_bits(
               case '0':                  break;
               default:
                 {
-                    char msg[BUFSIZ];
-                    std::sprintf( msg, "character string '%s' is not valid", 
-                    src_p );
-                    SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+                    std::stringstream msg;
+                    msg << "character string '" << src_p << "' is not valid";
+                    SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+                    return;
                 }
                 break;
             }
@@ -308,7 +383,7 @@ void parse_binary_bits(
         src_n = src_n - BITS_PER_DIGIT;
     }
 }
-        
+
 
 //------------------------------------------------------------------------------
 //"parse_hex_bits"
@@ -338,10 +413,12 @@ void parse_hex_bits(
     if( src_p == 0 ) {
         SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_,
                          "character string is zero" );
+        return;
     }
     if( *src_p == 0 ) {
         SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_,
                          "character string is empty" );
+        return;
     }
 
 
@@ -381,7 +458,6 @@ void parse_hex_bits(
         if ( src_i < 0 ) 
         {
             src_n += 8;
-            src_i = 0;
             data = 0;
             ctrl = 0;
             for ( src_i = 0; src_i < src_n; src_i++ )
@@ -418,10 +494,10 @@ void parse_hex_bits(
                   case 'z': ctrl = ctrl | 15; break;
                   default:
                     {
-                        char msg[BUFSIZ];
-                        std::sprintf( msg, "character string '%s' is not valid", 
-                        src_p );
-                        SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg);
+                        std::stringstream msg;
+                        msg << "character string '" << src_p << "' is not valid";
+                        SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+                        return;
                     }
                     break;
                 }
@@ -470,10 +546,10 @@ void parse_hex_bits(
 	      case 'z': ctrl = ctrl | 15; break;
               default:
                 {
-                    char msg[BUFSIZ];
-                    std::sprintf( msg, "character string '%s' is not valid", 
-                    src_p );
-                    SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+                    std::stringstream msg;
+                    msg << "character string '" << src_p << "' is not valid";
+                    SC_REPORT_ERROR(sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+                    return;
                 }
                 break;
             }
@@ -498,8 +574,8 @@ vec_from_str(int unb, int und, sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((unb > 0) && (und > 0) && (u != NULL));
-  assert(v != NULL);
+  sc_assert((unb > 0) && (und > 0) && (u != NULL));
+  sc_assert(v != NULL);
 #endif
 
   is_valid_base(base);
@@ -512,12 +588,11 @@ vec_from_str(int unb, int und, sc_digit *u,
     if (b == NB_DEFAULT_BASE)
       b = base;
     else {
-	char msg[BUFSIZ];
-	std::sprintf( msg,
-		 "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
-		 "base = %s does not match the default base",
-		 to_string( base ).c_str() );
-	SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+        std::stringstream msg;
+        msg << "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
+            << "base = " << base << " does not match the default base";
+        SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+        return 0;
     }
   }
 
@@ -535,16 +610,15 @@ vec_from_str(int unb, int und, sc_digit *u,
         val = toupper(c) - 'A' + 10;
       else
         val = c - '0';
-      
+
       if (val >= b) {
-	  char msg[BUFSIZ];
-	  std::sprintf( msg,
-		   "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
-		   "'%c' is not a valid digit in base %d",
-		   *v, b );
-	  SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+          std::stringstream msg;
+          msg << "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
+              << "'" << *v << "' is not a valid digit in base " << b;
+          SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+          return 0;
       }
-      
+
       // digit = digit * b + val;
       vec_mul_small_on(und, u, b);
       
@@ -553,12 +627,11 @@ vec_from_str(int unb, int und, sc_digit *u,
 
     }
     else {
-	char msg[BUFSIZ];
-	std::sprintf( msg,
-		 "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
-		 "'%c' is not a valid digit in base %d",
-		 *v, b );
-	SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+        std::stringstream msg;
+        msg << "vec_from_str( int, int, sc_digit*, const char*, sc_numrep base ) : "
+            << "'" << *v << "' is not a valid digit in base " << b;
+        SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+        return 0;
     }
   }
 
@@ -580,16 +653,16 @@ vec_add(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(w != NULL);
-  assert(ulen >= vlen);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(w != NULL);
+  sc_assert(ulen >= vlen);
 #endif
 
   const sc_digit *uend = (u + ulen);
   const sc_digit *vend = (v + vlen);
 
-  register sc_digit carry = 0;   // Also used as sum to save space.
+  sc_digit carry = 0;   // Also used as sum to save space.
 
   // Add along the shorter v.
   while (v < vend) {
@@ -624,16 +697,16 @@ vec_add_on(int ulen, sc_digit *ubegin,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (ubegin != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(ulen >= vlen);
+  sc_assert((ulen > 0) && (ubegin != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(ulen >= vlen);
 #endif
 
-  register sc_digit *u = ubegin;
+  sc_digit *u = ubegin;
   const sc_digit *uend = (u + ulen);
   const sc_digit *vend = (v + vlen);
 
-  register sc_digit carry = 0;   // Also used as sum to save space.
+  sc_digit carry = 0;   // Also used as sum to save space.
 
   // Add along the shorter v.
   while (v < vend) {
@@ -673,15 +746,15 @@ vec_add_on2(int ulen, sc_digit *ubegin,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (ubegin != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(ulen < vlen);
+  sc_assert((ulen > 0) && (ubegin != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(ulen < vlen);
 #endif
 
-  register sc_digit *u = ubegin;
+  sc_digit *u = ubegin;
   const sc_digit *uend = (u + ulen);
 
-  register sc_digit carry = 0;   // Also used as sum to save space.
+  sc_digit carry = 0;   // Also used as sum to save space.
 
   // Add along the shorter u.
   while (u < uend) {
@@ -709,14 +782,14 @@ vec_add_small(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert(w != NULL);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert(w != NULL);
 #endif
 
   const sc_digit *uend = (u + ulen);
 
   // Add along the shorter v.
-  register sc_digit carry = (*u++) + v;
+  sc_digit carry = (*u++) + v;
   (*w++) = carry & DIGIT_MASK;
   carry >>= BITS_PER_DIGIT;
 
@@ -743,10 +816,10 @@ vec_add_small_on(int ulen, sc_digit *u, sc_digit v)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
+  sc_assert((ulen > 0) && (u != NULL));
 #endif
 
-  register int i = 0;
+  int i = 0;
 
   while (v && (i < ulen)) {
     v += u[i];
@@ -775,16 +848,16 @@ vec_sub(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(w != NULL);
-  assert(ulen >= vlen);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(w != NULL);
+  sc_assert(ulen >= vlen);
 #endif
 
   const sc_digit *uend = (u + ulen);
   const sc_digit *vend = (v + vlen);
 
-  register sc_digit borrow = 0;   // Also used as diff to save space.
+  sc_digit borrow = 0;   // Also used as diff to save space.
 
   // Subtract along the shorter v.
   while (v < vend) {
@@ -801,7 +874,7 @@ vec_sub(int ulen, const sc_digit *u,
   }
 
 #ifdef DEBUG_SYSTEMC
-  assert(borrow == 0);
+  sc_assert(borrow == 0);
 #endif
 
   // Copy the rest of u to the result.
@@ -819,16 +892,16 @@ vec_sub_on(int ulen, sc_digit *ubegin,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (ubegin != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(ulen >= vlen);
+  sc_assert((ulen > 0) && (ubegin != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(ulen >= vlen);
 #endif
 
-  register sc_digit *u = ubegin;
+  sc_digit *u = ubegin;
   const sc_digit *uend = (u + ulen);
   const sc_digit *vend = (v + vlen);
 
-  register sc_digit borrow = 0;   // Also used as diff to save space.
+  sc_digit borrow = 0;   // Also used as diff to save space.
 
   // Subtract along the shorter v.
   while (v < vend) {
@@ -845,7 +918,7 @@ vec_sub_on(int ulen, sc_digit *ubegin,
   }
 
 #ifdef DEBUG_SYSTEMC
-  assert(borrow == 0);
+  sc_assert(borrow == 0);
 #endif
 
 }
@@ -859,14 +932,14 @@ vec_sub_on2(int ulen, sc_digit *ubegin,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (ubegin != NULL));
-  assert((vlen > 0) && (v != NULL));
+  sc_assert((ulen > 0) && (ubegin != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
 #endif
 
-  register sc_digit *u = ubegin;
+  sc_digit *u = ubegin;
   const sc_digit *uend = (u + sc_min(ulen, vlen));
 
-  register sc_digit borrow = 0;   // Also used as diff to save space.
+  sc_digit borrow = 0;   // Also used as diff to save space.
 
   // Subtract along the shorter u.
   while (u < uend) {
@@ -893,14 +966,14 @@ vec_sub_small(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert(ulen > 0);
-  assert(u != NULL);
+  sc_assert(ulen > 0);
+  sc_assert(u != NULL);
 #endif
 
   const sc_digit *uend = (u + ulen);
 
   // Add along the shorter v.
-  register sc_digit borrow = ((*u++) + DIGIT_RADIX) - v;
+  sc_digit borrow = ((*u++) + DIGIT_RADIX) - v;
   (*w++) = borrow & DIGIT_MASK;
   borrow = 1 - (borrow >> BITS_PER_DIGIT);
 
@@ -912,7 +985,7 @@ vec_sub_small(int ulen, const sc_digit *u,
   }
 
 #ifdef DEBUG_SYSTEMC
-  assert(borrow == 0);
+  sc_assert(borrow == 0);
 #endif
 
   // Copy the rest of u to the result.
@@ -928,17 +1001,17 @@ vec_sub_small_on(int ulen, sc_digit *u, sc_digit v)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
+  sc_assert((ulen > 0) && (u != NULL));
 #endif
 
-  for (register int i = 0; i < ulen; ++i) {
+  for (int i = 0; i < ulen; ++i) {
     v = (u[i] + DIGIT_RADIX) - v;    
     u[i] = v & DIGIT_MASK;
     v = 1 - (v >> BITS_PER_DIGIT);
   }
 
 #ifdef DEBUG_SYSTEMC
-  assert(v == 0);
+  sc_assert(v == 0);
 #endif
 
 }
@@ -1007,9 +1080,9 @@ vec_mul(int ulen, const sc_digit *u,
   */
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (vbegin != NULL));
-  assert(wbegin != NULL);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (vbegin != NULL));
+  sc_assert(wbegin != NULL);
 #endif
 
 #define prod_h carry
@@ -1025,14 +1098,14 @@ vec_mul(int ulen, const sc_digit *u,
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(u_h == (u_h & HALF_DIGIT_MASK));
+    sc_assert(u_h == (u_h & HALF_DIGIT_MASK));
 #endif
 
-    register sc_digit carry = 0;
+    sc_digit carry = 0;
 
-    register sc_digit *w = (wbegin++);
+    sc_digit *w = (wbegin++);
 
-    register const sc_digit *v = vbegin;
+    const sc_digit *v = vbegin;
 
     while (v < vend) {
 
@@ -1043,7 +1116,7 @@ vec_mul(int ulen, const sc_digit *u,
 
 #ifdef DEBUG_SYSTEMC
       // The overflow bits must be zero.
-      assert(v_h == (v_h & HALF_DIGIT_MASK));
+      sc_assert(v_h == (v_h & HALF_DIGIT_MASK));
 #endif
 
       sc_digit prod_l = (*w) + u_l * v_l + low_half(carry);
@@ -1072,16 +1145,16 @@ vec_mul_small(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert(w != NULL);
-  assert((0 < v) && (v < HALF_DIGIT_RADIX));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert(w != NULL);
+  sc_assert((0 < v) && (v < HALF_DIGIT_RADIX));
 #endif
 
 #define prod_h carry
 
   const sc_digit *uend = (u + ulen);
 
-  register sc_digit carry = 0;
+  sc_digit carry = 0;
 
   while (u < uend) {
 
@@ -1089,7 +1162,7 @@ vec_mul_small(int ulen, const sc_digit *u,
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(high_half(u_AB) == high_half_masked(u_AB));
+    sc_assert(high_half(u_AB) == high_half_masked(u_AB));
 #endif
 
     sc_digit prod_l = v * low_half(u_AB) + low_half(carry);
@@ -1115,19 +1188,19 @@ vec_mul_small_on(int ulen, sc_digit *u, sc_digit v)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((0 < v) && (v < HALF_DIGIT_RADIX));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((0 < v) && (v < HALF_DIGIT_RADIX));
 #endif
 
 #define prod_h carry
 
-  register sc_digit carry = 0;
+  sc_digit carry = 0;
 
-  for (register int i = 0; i < ulen; ++i) {
+  for (int i = 0; i < ulen; ++i) {
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(high_half(u[i]) == high_half_masked(u[i]));
+    sc_assert(high_half(u[i]) == high_half_masked(u[i]));
 #endif
 
     sc_digit prod_l = v * low_half(u[i]) + low_half(carry);
@@ -1161,10 +1234,10 @@ vec_div_large(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(w != NULL);
-  assert(BITS_PER_DIGIT >= 3 * BITS_PER_BYTE);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(w != NULL);
+  sc_assert(BITS_PER_DIGIT >= 3 * BITS_PER_BYTE);
 #endif
 
   // We will compute q = x / y where x = u and y = v. The reason for
@@ -1183,7 +1256,8 @@ vec_div_large(int ulen, const sc_digit *u,
 #else
   uchar *x = new uchar[xlen];
   uchar *y = new uchar[ylen];
-  uchar *q = new uchar[xlen - ylen + 1];
+  // valgrind complains about us accessing too far to so leave a buffer.
+  uchar *q = new uchar[(xlen - ylen) + 10];
 #endif
 
   // q corresponds to w.
@@ -1192,19 +1266,19 @@ vec_div_large(int ulen, const sc_digit *u,
   xlen = vec_to_char(ulen, u, xlen, x);
 
   // Skip all the leading zeros in x.
-  while ((--xlen >= 0) && (! x[xlen]));
+  while ((--xlen >= 0) && (! x[xlen])) continue;
   xlen++;
 
   // Set (uchar) y = (sc_digit) v.
   ylen = vec_to_char(vlen, v, ylen, y);
 
   // Skip all the leading zeros in y.
-  while ((--ylen >= 0) && (! y[ylen]));
+  while ((--ylen >= 0) && (! y[ylen])) continue;
   ylen++;
 
 #ifdef DEBUG_SYSTEMC
-  assert(xlen > 1);
-  assert(ylen > 1);
+  sc_assert(xlen > 1);
+  sc_assert(ylen > 1);
 #endif
 
   // At this point, all the leading zeros are eliminated from x and y.
@@ -1213,15 +1287,15 @@ vec_div_large(int ulen, const sc_digit *u,
   x[xlen] = 0;
 
   // The first two digits of y.
-  register sc_digit y2 = (y[ylen - 1] << BITS_PER_BYTE) + y[ylen - 2];
+  sc_digit y2 = (y[ylen - 1] << BITS_PER_BYTE) + y[ylen - 2];
 
   const sc_digit DOUBLE_BITS_PER_BYTE = 2 * BITS_PER_BYTE;
 
   // Find each q[k].
-  for (register int k = xlen - ylen; k >= 0; --k) {
+  for (int k = (xlen - ylen); k >= 0; --k) {
 
     // qk is a guess for q[k] such that q[k] = qk or qk - 1.
-    register sc_digit qk;
+    sc_digit qk;
 
     // Find qk by just using 2 digits of y and 3 digits of x. The
     // following code assumes that sizeof(sc_digit) >= 3 BYTEs.
@@ -1236,12 +1310,12 @@ vec_div_large(int ulen, const sc_digit *u,
     // q[k] = qk or qk - 1. The following if-statement determines which:
     if (qk) {
 
-      register uchar *xk = (x + k);  // A shortcut for x[k].
+      uchar *xk = (x + k);  // A shortcut for x[k].
 
       // x = x - y * qk :
-      register sc_digit carry = 0;
+      sc_digit carry = 0;
 
-      for (register int i = 0; i < ylen; ++i) {
+      for (int i = 0; i < ylen; ++i) {
         carry += y[i] * qk;
         sc_digit diff = (xk[i] + BYTE_RADIX) - (carry & BYTE_MASK);
         xk[i] = (uchar)(diff & BYTE_MASK);
@@ -1265,7 +1339,7 @@ vec_div_large(int ulen, const sc_digit *u,
           // That is, x = x - y * (qk - 1) = x - y * qk + y = x_above + y.
           carry = 0;
 
-          for (register int i = 0; i < ylen; ++i) {
+          for (int i = 0; i < ylen; ++i) {
             carry += xk[i] + y[i];
             xk[i] = (uchar)(carry & BYTE_MASK);
             carry >>= BITS_PER_BYTE;
@@ -1325,14 +1399,14 @@ vec_div_small(int ulen, const sc_digit *u,
   //        r = (((r|A) % v)|B) % v
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert(q != NULL);
-  assert((0 < v) && (v < HALF_DIGIT_RADIX));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert(q != NULL);
+  sc_assert((0 < v) && (v < HALF_DIGIT_RADIX));
 #endif
 
 #define q_h r
 
-  register sc_digit r = 0;
+  sc_digit r = 0;
   const sc_digit *ubegin = u;
 
   u += ulen;
@@ -1344,10 +1418,10 @@ vec_div_small(int ulen, const sc_digit *u,
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(high_half(u_AB) == high_half_masked(u_AB));
+    sc_assert(high_half(u_AB) == high_half_masked(u_AB));
 #endif
 
-    register sc_digit num = concat(r, high_half(u_AB));  // num = r|A
+    sc_digit num = concat(r, high_half(u_AB));  // num = r|A
     q_h = num / v;                           // C
     num = concat((num % v), low_half(u_AB)); // num = (((r|A) % v)|B) 
     (*--q) = concat(q_h, num / v);           // q = C|D
@@ -1368,10 +1442,10 @@ vec_rem_large(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(w != NULL);
-  assert(BITS_PER_DIGIT >= 3 * BITS_PER_BYTE);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(w != NULL);
+  sc_assert(BITS_PER_DIGIT >= 3 * BITS_PER_BYTE);
 #endif
 
   // This function is adapted from vec_div_large.
@@ -1393,19 +1467,19 @@ vec_rem_large(int ulen, const sc_digit *u,
   xlen = vec_to_char(ulen, u, xlen, x);
 
   // Skip all the leading zeros in x.
-  while ((--xlen >= 0) && (! x[xlen]));
+  while ((--xlen >= 0) && (! x[xlen])) continue;
   xlen++;
 
   // Set (uchar) y = (sc_digit) v.
   ylen = vec_to_char(vlen, v, ylen, y);
 
   // Skip all the leading zeros in y.
-  while ((--ylen >= 0) && (! y[ylen]));
+  while ((--ylen >= 0) && (! y[ylen])) continue;
   ylen++;
 
 #ifdef DEBUG_SYSTEMC
-  assert(xlen > 1);
-  assert(ylen > 1);
+  sc_assert(xlen > 1);
+  sc_assert(ylen > 1);
 #endif
 
   // At this point, all the leading zeros are eliminated from x and y.
@@ -1414,15 +1488,15 @@ vec_rem_large(int ulen, const sc_digit *u,
   x[xlen] = 0;
 
   // The first two digits of y.
-  register sc_digit y2 = (y[ylen - 1] << BITS_PER_BYTE) + y[ylen - 2];
+  sc_digit y2 = (y[ylen - 1] << BITS_PER_BYTE) + y[ylen - 2];
 
   const sc_digit DOUBLE_BITS_PER_BYTE = 2 * BITS_PER_BYTE;
 
   // Find each q[k].
-  for (register int k = xlen - ylen; k >= 0; --k) {
+  for (int k = xlen - ylen; k >= 0; --k) {
 
     // qk is a guess for q[k] such that q[k] = qk or qk - 1.
-    register sc_digit qk;
+    sc_digit qk;
 
     // Find qk by just using 2 digits of y and 3 digits of x. The
     // following code assumes that sizeof(sc_digit) >= 3 BYTEs.
@@ -1437,12 +1511,12 @@ vec_rem_large(int ulen, const sc_digit *u,
     // q[k] = qk or qk - 1. The following if-statement determines which.
     if (qk) {
 
-      register uchar *xk = (x + k);  // A shortcut for x[k].
+      uchar *xk = (x + k);  // A shortcut for x[k].
 
       // x = x - y * qk;
-      register sc_digit carry = 0;
+      sc_digit carry = 0;
 
-      for (register int i = 0; i < ylen; ++i) {
+      for (int i = 0; i < ylen; ++i) {
         carry += y[i] * qk;
         sc_digit diff = (xk[i] + BYTE_RADIX) - (carry & BYTE_MASK);
         xk[i] = (uchar)(diff & BYTE_MASK);
@@ -1464,7 +1538,7 @@ vec_rem_large(int ulen, const sc_digit *u,
           // x = x - y * (qk - 1) = x - y * qk + y = x_above + y.
           carry = 0;
 
-          for (register int i = 0; i < ylen; ++i) {
+          for (int i = 0; i < ylen; ++i) {
             carry += xk[i] + y[i];
             xk[i] = (uchar)(carry & BYTE_MASK);
             carry >>= BITS_PER_BYTE;
@@ -1496,23 +1570,23 @@ vec_rem_small(int ulen, const sc_digit *u, sc_digit v)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((0 < v) && (v < HALF_DIGIT_RADIX));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((0 < v) && (v < HALF_DIGIT_RADIX));
 #endif
 
   // This function is adapted from vec_div_small().
 
-  register sc_digit r = 0;
+  sc_digit r = 0;
   const sc_digit *ubegin = u;
 
   u += ulen;
 
   while (ubegin < u) {
-    register sc_digit u_AB = (*--u);  // A|B
+    sc_digit u_AB = (*--u);  // A|B
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(high_half(u_AB) == high_half_masked(u_AB));
+    sc_assert(high_half(u_AB) == high_half_masked(u_AB));
 #endif
 
     // r = (((r|A) % v)|B) % v
@@ -1529,13 +1603,13 @@ vec_rem_on_small(int ulen, sc_digit *u, sc_digit v)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert(v > 0);
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert(v > 0);
 #endif
 
 #define q_h r
 
-  register sc_digit r = 0;
+  sc_digit r = 0;
   const sc_digit *ubegin = u;
 
   u += ulen;
@@ -1546,10 +1620,10 @@ vec_rem_on_small(int ulen, sc_digit *u, sc_digit v)
 
 #ifdef DEBUG_SYSTEMC
     // The overflow bits must be zero.
-    assert(high_half(u_AB) == high_half_masked(u_AB));
+    sc_assert(high_half(u_AB) == high_half_masked(u_AB));
 #endif
 
-    register sc_digit num = concat(r, high_half(u_AB));  // num = r|A
+    sc_digit num = concat(r, high_half(u_AB));  // num = r|A
     q_h = num / v;                           // C
     num = concat((num % v), low_half(u_AB)); // num = (((r|A) % v)|B) 
     (*u) = concat(q_h, num / v);             // q = C|D
@@ -1570,14 +1644,14 @@ vec_to_char(int ulen, const sc_digit *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
 #endif
 
-  register int nbits = ulen * BITS_PER_DIGIT;
+  int nbits = ulen * BITS_PER_DIGIT;
 
-  register int right = 0;
-  register int left = right + BITS_PER_BYTE - 1;
+  int right = 0;
+  int left = right + BITS_PER_BYTE - 1;
 
   vlen = 0;
 
@@ -1586,7 +1660,7 @@ vec_to_char(int ulen, const sc_digit *u,
     int left_digit = left / BITS_PER_DIGIT;
     int right_digit = right / BITS_PER_DIGIT;
 
-    register int nsr = ((vlen << LOG2_BITS_PER_BYTE) % BITS_PER_DIGIT);
+    int nsr = ((vlen << LOG2_BITS_PER_BYTE) % BITS_PER_DIGIT);
 
     int d = u[right_digit] >> nsr;
 
@@ -1617,9 +1691,9 @@ vec_from_char(int ulen, const uchar *u,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
-  assert((vlen > 0) && (v != NULL));
-  assert(sizeof(uchar) <= sizeof(sc_digit));
+  sc_assert((ulen > 0) && (u != NULL));
+  sc_assert((vlen > 0) && (v != NULL));
+  sc_assert(sizeof(uchar) <= sizeof(sc_digit));
 #endif
 
   sc_digit *vend = (v + vlen);
@@ -1629,16 +1703,16 @@ vec_from_char(int ulen, const uchar *u,
 
   (*v) = (sc_digit) u[ulen - 1];
 
-  for (register int i = ulen - 2; i >= 0; --i) {
+  for (int i = ulen - 2; i >= 0; --i) {
 
     // Manual inlining of vec_shift_left().
 
-    register sc_digit *viter = v;
+    sc_digit *viter = v;
 
-    register sc_digit carry = 0;
+    sc_digit carry = 0;
 
     while (viter < vend) {
-      register sc_digit vval = (*viter);
+      sc_digit vval = (*viter);
       (*viter++) = (((vval & mask) << BITS_PER_BYTE) | carry);
       carry = vval >> nsr;
     }
@@ -1659,7 +1733,7 @@ vec_shift_left(int ulen, sc_digit *u, int nsl)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
+  sc_assert((ulen > 0) && (u != NULL));
 #endif
 
   if (nsl <= 0)
@@ -1682,7 +1756,7 @@ vec_shift_left(int ulen, sc_digit *u, int nsl)
     if (nd) {
 
       // Shift left for nd digits.
-      for (register int j = ulen - 1; j >= nd; --j)
+      for (int j = ulen - 1; j >= nd; --j)
         u[j] = u[j - nd];
       
       vec_zero( sc_min( nd, ulen ), u );
@@ -1695,16 +1769,16 @@ vec_shift_left(int ulen, sc_digit *u, int nsl)
   }
 
   // Shift left if nsl < BITS_PER_DIGIT.
-  register sc_digit *uiter = u;
+  sc_digit *uiter = u;
   sc_digit *uend = uiter + ulen;
 
   int nsr = BITS_PER_DIGIT - nsl;
   sc_digit mask = one_and_ones(nsr);
 
-  register sc_digit carry = 0;
+  sc_digit carry = 0;
 
   while (uiter < uend) {
-    register sc_digit uval = (*uiter);
+    sc_digit uval = (*uiter);
     (*uiter++) = (((uval & mask) << nsl) | carry);
     carry = uval >> nsr;
   }
@@ -1721,7 +1795,7 @@ vec_shift_right(int ulen, sc_digit *u, int nsr, sc_digit fill)
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((ulen > 0) && (u != NULL));
+  sc_assert((ulen > 0) && (u != NULL));
 #endif
 
   // fill is usually either 0 or DIGIT_MASK; it can be any value.
@@ -1746,11 +1820,11 @@ vec_shift_right(int ulen, sc_digit *u, int nsr, sc_digit fill)
     if (nd) {
 
       // Shift right for nd digits.
-      for (register int j = 0; j < (ulen - nd); ++j)
+      for (int j = 0; j < (ulen - nd); ++j)
         u[j] = u[j + nd];
 
       if (fill) {
-        for (register int j = ulen - sc_min( nd, ulen ); j < ulen; ++j)
+        for (int j = ulen - sc_min( nd, ulen ); j < ulen; ++j)
           u[j] = fill;
       }
       else
@@ -1765,15 +1839,15 @@ vec_shift_right(int ulen, sc_digit *u, int nsr, sc_digit fill)
 
   // Shift right if nsr < BITS_PER_DIGIT.
   sc_digit *ubegin = u;
-  register sc_digit *uiter = (ubegin + ulen);
+  sc_digit *uiter = (ubegin + ulen);
 
   int nsl = BITS_PER_DIGIT - nsr;
   sc_digit mask = one_and_ones(nsr);
 
-  register sc_digit carry = (fill & mask) << nsl;
+  sc_digit carry = (fill & mask) << nsl;
 
   while (ubegin < uiter) {
-    register sc_digit uval = (*--uiter);
+    sc_digit uval = (*--uiter);
     (*uiter) = (uval >> nsr) | carry;
     carry = (uval & mask) << nsl;
   }
@@ -1789,16 +1863,16 @@ vec_reverse(int unb, int und, sc_digit *ud,
 {
 
 #ifdef DEBUG_SYSTEMC
-  assert((unb > 0) && (und > 0) && (ud != NULL));
-  assert((0 <= r) && (r <= l) && (l < unb));
+  sc_assert((unb > 0) && (und > 0) && (ud != NULL));
+  sc_assert((0 <= r) && (r <= l) && (l < unb));
 #endif
 
   if (l < r) {
-      char msg[BUFSIZ];
-      std::sprintf( msg, "vec_reverse( int, int, sc_digit*, int l, int r ) : "
-	       "l = %d < r = %d is not valid",
-	       l, r );
-      SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg );
+      std::stringstream msg;
+      msg << "vec_reverse( int, int, sc_digit*, int l, int r ) : "
+          << "l = " << l << " < r = " << r << " is not valid",
+      SC_REPORT_ERROR( sc_core::SC_ID_CONVERSION_FAILED_, msg.str().c_str() );
+      return;
   }
 
   // Make sure that l and r are within bounds.
@@ -1818,7 +1892,7 @@ vec_reverse(int unb, int und, sc_digit *ud,
   // Based on the value of the ith in d, find the value of the jth bit
   // in ud.
 
-  for (register int i = l, j = r; i >= r; --i, ++j) {
+  for (int i = l, j = r; i >= r; --i, ++j) {
 
     if ((d[digit_ord(i)] & one_and_zeros(bit_ord(i))) != 0) // Test.
       ud[digit_ord(j)] |= one_and_zeros(bit_ord(j));     // Set.
@@ -1830,8 +1904,18 @@ vec_reverse(int unb, int und, sc_digit *ud,
 #ifndef SC_MAX_NBITS
   delete [] d;
 #endif
-    
 }
+
+#ifdef SC_MAX_NBITS
+void test_bound_failed(int nb )
+{
+    std::stringstream msg;
+    msg << "test_bound( int nb ) : "
+           "nb = " << nb << " > SC_MAX_NBITS = " << SC_MAX_NBITS
+        << "  is not valid";
+    SC_REPORT_ERROR( sc_core::SC_ID_OUT_OF_BOUNDS_, msg.str().c_str() );
+}
+#endif // SC_MAX_NBITS
 
 } // namespace sc_dt
 

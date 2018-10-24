@@ -1,17 +1,19 @@
 /*****************************************************************************
 
-  The following code is derived, directly or indirectly, from the SystemC
-  source code Copyright (c) 1996-2006 by all Contributors.
-  All Rights reserved.
+  Licensed to Accellera Systems Initiative Inc. (Accellera) under one or
+  more contributor license agreements.  See the NOTICE file distributed
+  with this work for additional information regarding copyright ownership.
+  Accellera licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with the
+  License.  You may obtain a copy of the License at
 
-  The contents of this file are subject to the restrictions and limitations
-  set forth in the SystemC Open Source License Version 2.4 (the "License");
-  You may not use this file except in compliance with such restrictions and
-  limitations. You may obtain instructions on how to receive a copy of the
-  License at http://www.systemc.org/. Software distributed by Contributors
-  under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF
-  ANY KIND, either express or implied. See the License for the specific
-  language governing rights and limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied.  See the License for the specific language governing
+  permissions and limitations under the License.
 
  *****************************************************************************/
 
@@ -21,32 +23,13 @@
 
   Original Author: Stan Y. Liao, Synopsys, Inc.
 
- *****************************************************************************/
-
-/*****************************************************************************
-
-  MODIFICATION LOG - modifiers, enter your name, affiliation, date and
-  changes you are making here.
-
-      Name, Affiliation, Date:
-  Description of Modification:
-
+  CHANGE LOG AT END OF FILE
  *****************************************************************************/
 
 
-// $Log: sc_list.cpp,v $
-// Revision 1.1.1.1  2006/12/15 20:31:39  acg
-// SystemC 2.2
-//
-// Revision 1.3  2006/01/13 18:53:10  acg
-// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
-// the source.
-//
-
-#include <assert.h>
+#include <cstddef>
 
 #include "sysc/kernel/sc_cmnhdr.h"
-#include "sysc/utils/sc_iostream.h"
 #include "sysc/utils/sc_list.h"
 #include "sysc/utils/sc_mempool.h"
 #include "sysc/utils/sc_report.h"
@@ -54,20 +37,18 @@
 
 namespace sc_core {
 
-class sc_plist_elem {
+class SC_API sc_plist_elem {
     friend class sc_plist_base_iter;
     friend class sc_plist_base;
 
 private:
-    sc_plist_elem() { prev = 0; next = 0; }
-    sc_plist_elem( void* d, sc_plist_elem* p, sc_plist_elem* n )
-    {
-        data = d; prev = p; next = n;
-    }
+    sc_plist_elem() : data(0), prev(0), next(0) 
+    {}
+    sc_plist_elem( void* d, sc_plist_elem* p, sc_plist_elem* n ) :
+        data(d), prev(p), next(n) 
+    {}
     ~sc_plist_elem()
-    {
-
-    }
+    {}
 
     static void* operator new(std::size_t sz)            { return sc_mempool::allocate(sz); }
     static void operator delete(void* p, std::size_t sz) { sc_mempool::release(p, sz);      }
@@ -77,11 +58,7 @@ private:
     sc_plist_elem* next;
 };
 
-sc_plist_base::sc_plist_base()
-{
-    head = 0;
-    tail = 0;
-}
+sc_plist_base::sc_plist_base() : head(0), tail(0) {}
 
 sc_plist_base::~sc_plist_base()
 {
@@ -267,9 +244,9 @@ sc_plist_base::back() const
 
 
 
-sc_plist_base_iter::sc_plist_base_iter( sc_plist_base* l, bool from_tail )
+sc_plist_base_iter::sc_plist_base_iter( sc_plist_base* l, bool from_tail ) :
+    lst(l), ptr( from_tail ? l->tail : l->head )
 {
-    reset( l, from_tail );
 }
 
 void
@@ -342,3 +319,23 @@ sc_plist_base_iter::set_handle( sc_plist_elem* h )
 }
 
 } // namespace sc_core
+
+// $Log: sc_list.cpp,v $
+// Revision 1.4  2011/08/26 20:46:18  acg
+//  Andy Goodrich: moved the modification log to the end of the file to
+//  eliminate source line number skew when check-ins are done.
+//
+// Revision 1.3  2011/08/24 22:05:56  acg
+//  Torsten Maehne: initialization changes to remove warnings.
+//
+// Revision 1.2  2011/02/18 20:38:43  acg
+//  Andy Goodrich: Updated Copyright notice.
+//
+// Revision 1.1.1.1  2006/12/15 20:20:06  acg
+// SystemC 2.3
+//
+// Revision 1.3  2006/01/13 18:53:10  acg
+// Andy Goodrich: Added $Log command so that CVS comments are reproduced in
+// the source.
+
+// taf
