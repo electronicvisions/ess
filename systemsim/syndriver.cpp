@@ -3,7 +3,7 @@
 #include "sim_def.h"
 #include "hw_neuron.h"
 
-#include "HMF/STPUtilizationCalibration.h"
+#include "calibtic/HMF/STPUtilizationCalibration.h"
 #include "paramtrafo_types.h"
 #include <log4cxx/logger.h>
 

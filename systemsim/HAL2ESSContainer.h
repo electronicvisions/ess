@@ -7,7 +7,7 @@
 #include "HAL2ESSEnum.h"
 #include "hal/FPGAContainer.h"
 
-#include "HMF/HWNeuronParameter.h"
+#include "calibtic/HMF/HWNeuronParameter.h"
 #include "euter/cellparameters.h"
 
 namespace HMF {

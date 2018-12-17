@@ -27,7 +27,7 @@
 #include "jf_utils.h"
 
 //#include "Tools/stage2/NN_def.h" // for VOID_NEURON
-#include "HMF/SynapseDecoderDisablingSynapse.h"
+#include "calibtic/HMF/SynapseDecoderDisablingSynapse.h"
 
 
 #include <log4cxx/logger.h>

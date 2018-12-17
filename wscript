@@ -10,8 +10,6 @@ def depends(ctx):
     ctx('logger')
     ctx('halbe')
     ctx('calibtic')
-    ctx('calibtic', 'backends')
-    ctx('calibtic', 'HMF')
     ctx('systemsim-stage2', 'systemc_for_python')
     ctx('odeint-v2')
 

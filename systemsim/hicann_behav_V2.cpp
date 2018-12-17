@@ -2,7 +2,7 @@
 #include "sim_def.h"
 
 #include "HALaccess.h"
-#include "HMF/SynapseDecoderDisablingSynapse.h"
+#include "calibtic/HMF/SynapseDecoderDisablingSynapse.h"
 
 //include members that were forward declared
 #include "l1_behav_V2.h"
