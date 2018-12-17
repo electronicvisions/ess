@@ -169,7 +169,7 @@ class anncore_behav :
 				);
 
 		/** doc in anncore_task_if*/
-		virtual const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH>& getWeight(int x, int y) const;
+		virtual const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH> getWeight(int x, int y) const;
 		/** doc in anncore_task_if*/
 		virtual const std::vector<char>& getWeights() const;
 		//    /** doc in anncore_task_if*/

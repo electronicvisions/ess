@@ -26,7 +26,7 @@ void dnc_if::rx_l2_ctrl()
 
 	if(this->dnc_channel_i->fifo_rx_event.num_available())
 	{
-		uint value;
+		uint value = 0;
 		sc_uint<L2_EVENT_WIDTH> out;
 
 		this->dnc_channel_i->fifo_rx_event.nb_read(value);

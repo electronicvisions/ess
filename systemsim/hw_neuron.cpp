@@ -66,7 +66,7 @@ void hw_neuron::end_of_refrac_period()
 
 }
 
-void hw_neuron::spike_in(double weight, char type)
+void hw_neuron::spike_in(double /*weight*/, char /*type*/)
 {
 	counter++;
 	if(counter>=counter_thresh){
@@ -94,7 +94,7 @@ void hw_neuron::start_random_spike(){
 	gen_random_spike();
 }
 
-void hw_neuron::init(ESS::BioParameter /*_neuron_parameter*/, unsigned int _addr, bool rec, std::string fn, double dt)
+void hw_neuron::init(ESS::BioParameter /*_neuron_parameter*/, unsigned int _addr, bool /*rec*/, std::string /*fn*/, double /*dt*/)
 {
 	this->addr=_addr;
     LOG4CXX_DEBUG(logger, "hw_neuron::init() successfully called!" );

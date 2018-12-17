@@ -40,7 +40,7 @@ public:
     virtual const std::vector<char>& getWeights() const =0;
     /** returns reference to the weight values of one address within syn memory. Data format:
 		    see doc of configWeight(). */
-	virtual const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH>& getWeight(int x, int y) const =0;
+	virtual const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH> getWeight(int x, int y) const =0;
 
 
     /** The adresses of all synapse decoders in row-first order, first

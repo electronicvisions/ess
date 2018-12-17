@@ -54,7 +54,9 @@ bg_event_generator::generate_spike() {
 
 		bool fire_now = false;
 		do {
-			bool bit_0 = ((unsigned ) lfsr[15] + lfsr[13] + lfsr[12] + lfsr[10])%2;
+			/* ECM (2019-01-11) removed unused variable:
+			 * bool bit_0 = ((unsigned ) lfsr[15] + lfsr[13] + lfsr[12] + lfsr[10])%2;
+			 */
 			std::bitset<16> cp_lfsr = lfsr;
 			for (size_t i = 1; i < 16; ++i)
 				lfsr[i] = cp_lfsr[i-1];

@@ -78,7 +78,7 @@ void hw_neuron_IFSC::end_of_refrac_period()
 	*/
 }
 
-void hw_neuron_IFSC::spike_in(double weight, char type)
+void hw_neuron_IFSC::spike_in(double weight, char /*type*/)
 {
     LOG4CXX_TRACE(logger, name() << " spike_in(" << (double) weight << ") at: "<< sc_time_stamp() );
 
@@ -133,7 +133,7 @@ void hw_neuron_IFSC::record_v()
 	// set time for next record
 	rec_v.notify(10,SC_US);
 }
-void hw_neuron_IFSC::init(ESS::BioParameter _neuron_parameter, unsigned int _addr, bool rec, std::string fn, double dt)
+void hw_neuron_IFSC::init(ESS::BioParameter _neuron_parameter, unsigned int _addr, bool /*rec*/, std::string /*fn*/, double /*dt*/)
 {
 	this->addr=_addr;
 	this->neuron_parameter = _neuron_parameter;

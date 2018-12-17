@@ -31,7 +31,7 @@ pcb::~pcb()
 {}
 
 pcb::pcb(
-		sc_module_name pcb_i,           //!< systemc instance name
+		sc_module_name /*pcb_i*/,       //!< systemc instance name
 		int id,                         ///<identification number
 		unsigned int hicann_x,      //!< nr of hicanns in X-direction
 		unsigned int hicann_y,      //!< nr of hicanns in y-direction
@@ -90,9 +90,10 @@ pcb::pcb(
 	{
 		for(size_t nx=0; nx<hicann_x_count; ++nx)
 		{
-			if (hicann_config.at(ny).at(nx).get<0>())
+			if (hicann_config.at(ny).at(nx).get<0>()) {
 				hicann_enable.at(ny).at(nx) = hicann_config.at(ny).at(nx).get<1>();
 				hicann_on_dnc.at(ny).at(nx) = hicann_config.at(ny).at(nx).get<3>();
+			}
 		}
 	}
 

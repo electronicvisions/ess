@@ -159,7 +159,9 @@ void anncore_behav::update_stim(CurrentStimulus & stim)
         if (stim.clk_counter == stim.period)
         {
             stim.clk_counter = 0;
-            size_t old_position = stim.position;
+            /* ECM: there was additionally (!) this line:
+             * size_t old_position = stim.position;
+             */
             uint16_t old_current = stim.Currents[stim.position];
             
             if(stim.position == (stim.Currents.size() - 1) )
@@ -284,7 +286,7 @@ void anncore_behav::configWeight(int x, int y, sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_
 			  (sc_uint<SYN_COLDATA_WIDTH>)(weight>>(SYN_COLDATA_WIDTH*(SYN_NUMCOLS_PER_ADDR-(i+1))));
 }
 
-const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH>& anncore_behav::getWeight(int x, int y) const
+const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH> anncore_behav::getWeight(int x, int y) const
 {
     if(x<0 || x >= pow((double)2,(double)SYN_COLADDR_WIDTH) ||
        y<0 || y >= SYNDRIVERS * ROWS_PER_SYNDRIVER)
@@ -294,7 +296,7 @@ const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH>& anncore_behav::getWeight(
     }
 
 		// assemble result vector
-	const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH>& weights = 0;
+	const sc_uint<SYN_NUMCOLS_PER_ADDR*SYN_COLDATA_WIDTH> weights = 0;
 
 	/* ---> old stuff, this should return just one weight!!!
 	for(uint i=0;i<SYN_NUMCOLS_PER_ADDR;i++)
@@ -648,7 +650,9 @@ int anncore_behav::print_cfg(std::string fn)
 		{
 			// Configuration of Syndriver Mirrors:
 			fs << "Mirrored Syndrivers: up:= get Input from Syndriver above\n";
-			int mir_count=0;
+			/* ECM (2018-01-11) removed
+			 * int mir_count=0;
+			 */
 
 			for(unsigned int i = 0; i<_syndrivers.size(); i++)
 			{

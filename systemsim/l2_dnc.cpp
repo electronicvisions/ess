@@ -20,7 +20,7 @@
 
 static log4cxx::LoggerPtr logger = log4cxx::Logger::getLogger("ESS.Layer2");
 
-l2_dnc::l2_dnc (sc_module_name l2_dnc_i,char wafer,short id, const ESS::dnc_config & config)
+l2_dnc::l2_dnc (sc_module_name /*l2_dnc_i*/,char wafer,short id, const ESS::dnc_config & config)
 	: id(id)
 	, wafer(wafer)
 	, clk("clk",CLK_PER_L2_DNC,SC_NS)
@@ -114,8 +114,8 @@ void l2_dnc::transmit_from_fpga(const sc_uint<HYP_EVENT_WIDTH>& rx_event)
 
 void l2_dnc::fifo_from_anc_ctrl()
 {
-	uint value;
-	uint64 value_cfg;
+	uint value = 0;
+	uint64 value_cfg = 0;
 	int i;
 	sc_uint<L2_EVENT_WIDTH> out;
 
@@ -142,11 +142,11 @@ void l2_dnc::fifo_from_anc_ctrl()
 
 void l2_dnc::fifo_from_fpga_ctrl()
 {
-	uint64 value;
-	unsigned char target;
+	uint64 value = 0;
+	unsigned char target = 0;
 	sc_uint<HYP_EVENT_WIDTH> out;
-	uint64 cfg_data;
-	unsigned char cfg_target;
+	uint64 cfg_data = 0;
+	unsigned char cfg_target = 0;
 
 //		wait(100,SC_PS);
 		if(dnc_tx_fpga_i->fifo_rx_event.num_available())

@@ -24,7 +24,7 @@
 
 static log4cxx::LoggerPtr logger = log4cxx::Logger::getLogger("ESS.Layer2");
 
-l2_fpga::l2_fpga (sc_module_name l2_fpga_i, int id, int wafer_id, const ESS::fpga_config & config)
+l2_fpga::l2_fpga (sc_module_name /*l2_fpga_i*/, int id, int wafer_id, const ESS::fpga_config & config)
 	: id(id)
 	, wafer_id(wafer_id)
     ,_record(config.record)
@@ -58,9 +58,9 @@ l2_fpga::~l2_fpga()
 
 void l2_fpga::fifo_from_l2_ctrl()
 {
-	uint64 value;
+	uint64 value = 0;
 	sc_uint<HYP_EVENT_WIDTH> out;
-	unsigned char target;
+	unsigned char target = 0;
 	int i;
 
 	for(i=0;i<DNC_FPGA;++i)

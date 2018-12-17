@@ -382,6 +382,7 @@ HMF::HWNeuronParameter HALaccess::getHWNeuronParameter(ESS::BioParameter const& 
 {
 	using namespace HMF;
 	size_t hic_id = to_id(hic_x, hic_y);
+	static_cast<void>(hic_id);
     ESS::BioParameter temp = params;
     // calculate the membrane capacity
     double tau = 1000*(params.cm) / (params.g_l); // 1000*nF/nS -> ms

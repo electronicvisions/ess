@@ -52,7 +52,7 @@ bool merger::nb_write_pulse(
 	return true;
 }
 bool merger::nb_read_pulse(
-		short& nrn_adr //!< 6-bit neuron address
+		short& /*nrn_adr*/ //!< 6-bit neuron address
 		) {
 	return false;
 }
